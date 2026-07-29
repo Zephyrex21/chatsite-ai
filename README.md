@@ -3,8 +3,8 @@
 Paste a URL, get a grounded AI chat about that page's actual content.
 Built as a portfolio-grade project — not a demo, a production-shaped app.
 
-**Status:** Phase 0 + 1 complete (Architecture & DevEx Foundation). No
-user-facing features yet — see [Roadmap](#roadmap) below.
+**Status:** Phase 0, 1 & 2 complete (Architecture, DevEx Foundation, and the
+core scrape service). No chat or UI yet — see [Roadmap](#roadmap) below.
 
 ---
 
@@ -73,9 +73,41 @@ npm run test:watch        # watch mode while developing
 npm run test:coverage     # run with coverage report (output in /coverage)
 ```
 
-Current test coverage: the URL validation utility
-(`src/lib/validation/url.ts`) — includes SSRF-protection test cases
-(rejects localhost, private IP ranges, the cloud metadata endpoint range).
+Current coverage: URL validation (SSRF-protection cases) and the full
+scraping service — 97%+ statement coverage on `src/lib/services/scraping`,
+including cache hit/miss logic and every Firecrawl error path (rate
+limits, insufficient credits, timeouts, malformed responses), tested
+against a mocked HTTP layer (MSW) rather than the real API. The Prisma
+repository layer (`src/lib/repositories`) is intentionally untested this
+phase — it's a thin wrapper and would need either a real test database or
+heavy mocking to test meaningfully; deferred rather than faked.
+
+### Try the scrape endpoint for real
+
+Once `FIRECRAWL_API_KEY` is set in `.env.local` and `npm run dev` is
+running, hit the real endpoint directly:
+
+```bash
+curl -X POST http://localhost:3000/api/scrape \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com"}'
+```
+
+The first call scrapes live and costs 1 Firecrawl credit. Run the exact
+same command again — it should come back near-instantly with
+`"fromCache": true`, served from Postgres instead of hitting Firecrawl
+again.
+
+Try an unsafe URL to see the SSRF protection in action:
+
+```bash
+curl -X POST http://localhost:3000/api/scrape \
+  -H "Content-Type: application/json" \
+  -d '{"url": "http://169.254.169.254/latest/meta-data"}'
+```
+
+This should return a `400` with `"code": "INVALID_URL"` — the request
+never reaches Firecrawl at all.
 
 ### Full verification (what CI runs)
 
@@ -106,18 +138,21 @@ staged files before every commit.
 
 ```
 src/
-  app/                 → routes & pages (thin, no business logic)
+  app/
+    api/scrape/route.ts → POST endpoint, thin wrapper over the scraping service
+    (pages)              → routes & pages (thin, no business logic)
   lib/
-    services/          → business logic, framework-agnostic, unit-testable
-    repositories/      → database access (Prisma), isolated behind an interface
-    ai/                 → Gemini client + prompt templates
-    validation/         → input validation (e.g. SSRF-safe URL checks)
+    services/
+      scraping/          → ScrapingService, FirecrawlProvider, shared types
+    repositories/        → database access (Prisma), isolated behind an interface
+    ai/                  → Gemini client + prompt templates (Phase 3)
+    validation/          → input validation (e.g. SSRF-safe URL checks)
   components/
-    ui/                 → design-system primitives (Button, Card, Input, ...)
+    ui/                  → design-system primitives (Button, Card, Input, ...)
     chat/                → feature-specific chat components
 tests/
-  unit/                 → Vitest, fast, no external calls
-  integration/          → Vitest + MSW, mocked external APIs
+  unit/                  → Vitest, fast, no external calls
+  integration/           → Vitest + MSW, mocked external APIs
   e2e/                   → Playwright (added in Phase 9)
 docs/
   adr-0001-tech-stack.md → why each major tech choice was made
@@ -135,7 +170,7 @@ at once — each phase ships as a working, tested increment.
 
 - [x] **Phase 0 — Architecture & Planning**: ADRs, system diagram, DB schema, repo structure
 - [x] **Phase 1 — DevEx & CI Foundation**: lint/format/typecheck gate, Husky, GitHub Actions CI
-- [ ] **Phase 2 — Core Scrape Service**: Firecrawl integration, caching, SSRF-safe validation
+- [x] **Phase 2 — Core Scrape Service**: Firecrawl integration, caching, SSRF-safe validation
 - [ ] **Phase 3 — AI Chat Service**: Gemini integration, streaming, prompt-injection resistant grounding
 - [ ] **Phase 4 — Auth & Multi-User**: NextAuth, guest mode, per-user rate limiting
 - [ ] **Phase 5 — Claymorphic UI**: full design system, component library, accessibility pass

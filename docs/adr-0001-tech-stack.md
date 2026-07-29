@@ -71,6 +71,13 @@ a rewrite.
 **Trade-off accepted:** dependency on a third-party API's uptime and free
 tier limits — mitigated with caching and clear user-facing error states.
 
+**Note on API version:** integrates against Firecrawl's `/v2/scrape`
+endpoint specifically (verified against current docs at implementation
+time, not assumed from training data — Firecrawl has iterated its API
+surface significantly across versions). The request/response shape is
+isolated entirely inside `FirecrawlProvider`, so if Firecrawl ships a v3,
+updating is a change to one file, not a hunt through the codebase.
+
 ### Gemini with a fallback chain over a single fixed model
 
 **Decision:** Primary model call to a fast Gemini model, with a fallback to

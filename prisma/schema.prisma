@@ -1,0 +1,75 @@
+// ChatSite — Prisma schema
+// Run `npx prisma generate` after install, and `npx prisma migrate dev --name init`
+// once DATABASE_URL points at a real Postgres instance (Neon/Supabase free tier work fine).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String        @id @default(cuid())
+  email     String        @unique
+  name      String?
+  image     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  sessions  ChatSession[]
+
+  @@map("users")
+}
+
+model ScrapedSite {
+  id         String        @id @default(cuid())
+  url        String        @unique
+  title      String?
+  markdown   String
+  wordCount  Int           @default(0)
+  scrapedAt  DateTime      @default(now())
+  expiresAt  DateTime?
+
+  sessions   ChatSession[]
+
+  @@index([url])
+  @@map("scraped_sites")
+}
+
+model ChatSession {
+  id         String     @id @default(cuid())
+  userId     String?
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  siteId     String
+  site       ScrapedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  isShared   Boolean    @default(false)
+  shareSlug  String?    @unique
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  messages   Message[]
+
+  @@index([userId])
+  @@map("chat_sessions")
+}
+
+model Message {
+  id         String      @id @default(cuid())
+  sessionId  String
+  session    ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role       Role
+  content    String
+  createdAt  DateTime    @default(now())
+
+  @@index([sessionId])
+  @@map("messages")
+}
+
+enum Role {
+  user
+  assistant
+  system
+}

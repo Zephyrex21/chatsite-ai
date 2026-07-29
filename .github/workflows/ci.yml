@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+env:
+  # prisma generate only needs a syntactically valid URL, it doesn't connect
+  # to a real database. Real DB access is only needed for `migrate`/`db push`,
+  # which are run manually / in a deploy step, not in this CI gate.
+  DATABASE_URL: 'postgresql://ci:ci@localhost:5432/ci'
+
+jobs:
+  verify:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Unit & integration tests (with coverage)
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+      - name: Build
+        run: npm run build

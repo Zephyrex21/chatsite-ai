@@ -1,0 +1,51 @@
+{
+  "name": "chatsite",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "prepare": "husky",
+    "verify": "npm run lint && npm run typecheck && npm run format:check && npm run test"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.9.1",
+    "next": "16.2.12",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.4",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.12",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "jsdom": "^30.0.0",
+    "lint-staged": "^17.2.0",
+    "msw": "^2.15.0",
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "prisma": "^7.9.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  }
+}

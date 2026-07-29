@@ -50,6 +50,18 @@ npx prisma migrate dev --name init
 npm run dev
 ```
 
+> **Note on Prisma version:** this project uses **Prisma 7**, which changed
+> how the database connection URL is configured — it now lives in
+> `prisma.config.ts` at the project root, not inside `schema.prisma` (a
+> breaking change from Prisma 6 and earlier, which is what most tutorials
+> online still show). You don't need to do anything differently — just
+> make sure `DATABASE_URL` is set in `.env.local` as shown above, and both
+> `prisma generate` and `prisma migrate dev` will pick it up automatically
+> via `prisma.config.ts`. If you ever see an error mentioning
+> `schema.prisma:11` and `url is no longer supported`, it means something
+> re-added a `url = env(...)` line directly into `schema.prisma` — remove
+> it, the URL belongs in `prisma.config.ts` only.
+
 Visit `http://localhost:3000` — you should see a minimal placeholder page
 confirming the foundation is wired up correctly.
 

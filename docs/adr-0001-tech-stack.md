@@ -48,6 +48,15 @@ defaulting to one tool for every project.
 **Trade-off accepted:** an extra migration step in the deploy pipeline
 (`prisma migrate deploy`) that a schemaless DB wouldn't need.
 
+**Note on Prisma 7:** this project was started shortly after Prisma's v7
+release, which changed the connection-URL configuration model. The URL now
+lives in `prisma.config.ts`, not in `schema.prisma`'s `datasource` block,
+and `PrismaClient` requires an explicit driver adapter (`@prisma/adapter-pg`)
+rather than connecting with zero config. See `prisma.config.ts` and
+`src/lib/repositories/db.ts` for the resulting setup. This is called out
+explicitly because most existing Prisma tutorials/StackOverflow answers
+still describe the pre-v7 pattern.
+
 ### Firecrawl over building a custom scraper
 
 **Decision:** Use Firecrawl's hosted API rather than a self-built

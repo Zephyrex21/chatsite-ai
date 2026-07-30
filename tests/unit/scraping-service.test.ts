@@ -11,7 +11,7 @@ import type {
 } from '@/lib/repositories/scraped-site.repository';
 
 /** Minimal shape matching the fields ScrapingService actually reads off a ScrapedSite. */
-type FakeScrapedSite = UpsertScrapedSiteInput & { expiresAt: Date | null };
+type FakeScrapedSite = UpsertScrapedSiteInput & { id: string; expiresAt: Date | null };
 
 class FakeScraperProvider implements ScraperProvider {
   public calls: string[] = [];
@@ -36,6 +36,7 @@ class FakeScrapedSiteRepository implements ScrapedSiteRepository {
   async upsert(input: UpsertScrapedSiteInput) {
     const site: FakeScrapedSite = {
       ...input,
+      id: `fake-id-${this.store.size}`,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     };
     this.store.set(input.url, site);
@@ -97,6 +98,7 @@ describe('ScrapingService', () => {
     const provider = new FakeScraperProvider(sampleContent);
     const repository = new FakeScrapedSiteRepository();
     repository.seed('https://example.com/', {
+      id: 'seeded-id-1',
       url: 'https://example.com/',
       title: 'Cached Title',
       markdown: 'cached markdown',
@@ -116,6 +118,7 @@ describe('ScrapingService', () => {
     const provider = new FakeScraperProvider(sampleContent);
     const repository = new FakeScrapedSiteRepository();
     repository.seed('https://example.com/', {
+      id: 'seeded-id-2',
       url: 'https://example.com/',
       title: 'Stale Title',
       markdown: 'stale markdown',

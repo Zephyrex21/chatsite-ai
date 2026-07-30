@@ -87,6 +87,28 @@ project's AI integration.
 **Why:** Keeps typical response latency low while protecting against a
 single model's transient failures degrading the whole product.
 
+**Note on model choice and SDK:** uses `@google/genai` (the current unified
+SDK — the older `@google/generative-ai` package is deprecated). Model
+choice: `gemini-2.5-flash` as primary, `gemini-3.5-flash` as fallback. This
+was a deliberate choice of the _proven_ 2.5 generation for the primary
+call rather than the newer 3.x family — Gemini 3.x has iterated fast
+(several preview models shipped and were deprecated within weeks in mid-
+2026), which is exactly the kind of churn a primary/critical-path call
+shouldn't be exposed to. The stronger, newer 3.5 model is used only as the
+fallback, where its extra capability is more valuable than its shorter
+track record. Both model names are defined as single constants in
+`gemini-client.ts` — swapping either is a one-line change.
+
+**Note on testing strategy:** `ChatService` (the orchestration logic —
+prompt grounding, history building, persistence) is unit-tested against a
+fake `AiClient`, achieving 94%+ coverage. `GeminiClient` itself (the direct
+SDK wrapper) is deliberately _not_ covered by an automated test — mocking
+the Gemini SDK's internal transport convincingly would mean writing
+assertions against my own assumptions of its wire format rather than
+verified reality, which is worse than no test at all. It's verified
+instead via a manual smoke test against the real API (see README). This
+mirrors the same reasoning already applied to the Prisma repository layer.
+
 ## Consequences
 
 - The service layer (`src/lib/services`, `src/lib/ai`, `src/lib/repositories`)

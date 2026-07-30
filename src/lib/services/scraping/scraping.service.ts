@@ -3,6 +3,7 @@ import type { ScrapedSiteRepository } from '@/lib/repositories/scraped-site.repo
 import { ScraperError, type ScraperProvider } from './types';
 
 export interface ScrapeResult {
+  id: string;
   url: string;
   title: string | null;
   markdown: string;
@@ -36,6 +37,7 @@ export class ScrapingService {
     const cached = await this.repository.findFreshByUrl(url);
     if (cached) {
       return {
+        id: cached.id,
         url: cached.url,
         title: cached.title,
         markdown: cached.markdown,
@@ -54,6 +56,7 @@ export class ScrapingService {
     });
 
     return {
+      id: saved.id,
       url: saved.url,
       title: saved.title,
       markdown: saved.markdown,

@@ -31,12 +31,12 @@ class FakeChatSessionRepository implements ChatSessionRepository {
   public addedMessages: Array<{ sessionId: string; role: string; content: string }> = [];
   private nextId = 1;
 
-  async create(siteId: string): Promise<FakeSession> {
+  async create(siteId: string, userId?: string | null): Promise<FakeSession> {
     const id = `session-${this.nextId++}`;
     const session = {
       id,
       siteId,
-      userId: null,
+      userId: userId ?? null,
       isShared: false,
       shareSlug: null,
       createdAt: new Date(),
@@ -58,6 +58,12 @@ class FakeChatSessionRepository implements ChatSessionRepository {
 
   async findWithHistory(sessionId: string): Promise<FakeSession | null> {
     return this.sessions.get(sessionId) ?? null;
+  }
+
+  async findByUser(userId: string): Promise<FakeSession[]> {
+    return Array.from(this.sessions.values()).filter(
+      (session) => (session as unknown as { userId: string | null }).userId === userId,
+    );
   }
 
   async addMessage(sessionId: string, role: 'user' | 'assistant', content: string): Promise<void> {
@@ -183,5 +189,41 @@ describe('ChatService', () => {
       role: 'user',
       content: 'will this be saved?',
     });
+  });
+
+  it('links a new session to a user when signed in', async () => {
+    const ai = new FakeAiClient(['ok']);
+    const repo = new FakeChatSessionRepository();
+    const service = new ChatService(ai, repo);
+
+    const session = await service.createSession('site-1', 'user-42');
+
+    expect((session as unknown as { userId: string | null }).userId).toBe('user-42');
+  });
+
+  it('creates a guest (unlinked) session when no user id is given', async () => {
+    const ai = new FakeAiClient(['ok']);
+    const repo = new FakeChatSessionRepository();
+    const service = new ChatService(ai, repo);
+
+    const session = await service.createSession('site-1');
+
+    expect((session as unknown as { userId: string | null }).userId).toBeNull();
+  });
+
+  it("lists only a specific user's sessions", async () => {
+    const ai = new FakeAiClient(['ok']);
+    const repo = new FakeChatSessionRepository();
+    const service = new ChatService(ai, repo);
+
+    await service.createSession('site-1', 'user-a');
+    await service.createSession('site-2', 'user-b');
+    await service.createSession('site-3', 'user-a');
+    await service.createSession('site-4'); // guest session, should never appear
+
+    const sessions = await service.listSessionsForUser('user-a');
+
+    expect(sessions).toHaveLength(2);
+    expect(sessions.map((s) => s.siteId)).toEqual(['site-1', 'site-3']);
   });
 });

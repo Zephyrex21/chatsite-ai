@@ -109,6 +109,54 @@ verified reality, which is worse than no test at all. It's verified
 instead via a manual smoke test against the real API (see README). This
 mirrors the same reasoning already applied to the Prisma repository layer.
 
+### Auth.js v5 with JWT sessions, adapter used only for user persistence
+
+**Decision:** `next-auth@beta` (Auth.js v5) with `@auth/prisma-adapter`,
+GitHub + Google OAuth providers, and `session: { strategy: 'jwt' }`
+explicitly forced.
+
+**Why JWT over database sessions:** database sessions add a Prisma query
+to every authenticated request and can't run outside the Node.js runtime.
+Neither is a real constraint at this project's traffic level, but there's
+no upside to paying that cost for no benefit — JWT sessions verify from an
+encrypted cookie with zero database round-trip. The trade-off (can't
+invalidate a single session early, e.g. on a suspected account compromise,
+without waiting for the JWT to expire) is acceptable here; it wouldn't be
+for a project with stricter session-revocation requirements.
+
+**Why the adapter is still used despite JWT sessions:** JWT alone doesn't
+give you a `users` table to query — "per-user session history" needs real
+User/Account rows to link ChatSessions to. The adapter persists those on
+sign-in; the JWT strategy just means _session verification_ doesn't touch
+the database, not that _user data_ doesn't.
+
+**Why auth checks live in route handlers, not middleware/proxy.ts:**
+Next.js 16 renamed `middleware.ts` to `proxy.ts` specifically to make the
+network boundary explicit, and the framework's own guidance is now that
+`proxy.ts` should handle routing concerns only (redirects, rewrites) —
+_not_ authentication. This followed a real vulnerability
+(CVE-2025-29927) where middleware-based auth could be bypassed under
+certain conditions due to Edge Runtime limitations. This project checks
+`auth()` directly inside each route handler that needs it instead —
+slightly more repetition across handlers, but no shared "trust the
+middleware already checked this" assumption that could silently break if
+a route is added without updating a central matcher config.
+
+**Note on env var names:** Auth.js v5's canonical variable names changed
+from v4 (`AUTH_SECRET` instead of `NEXTAUTH_SECRET`, `AUTH_GITHUB_ID`
+instead of `GITHUB_ID`, etc.) — most existing tutorials and Stack Overflow
+answers still show the old names. Both work (v4 names are kept for
+backward compatibility), but `.env.example` uses the canonical v5 names.
+
+**Note on the Prisma schema:** Auth.js's Prisma adapter expects models
+named exactly `Account`, `Session`, and `VerificationToken`. This
+project already had a `ChatSession` model (application-level chat
+threads, unrelated to authentication) before this phase, which
+doesn't collide with Auth.js's own `Session` model — but `User.sessions`
+_did_ originally point at `ChatSession[]`, which would have collided
+with the relation name Auth.js's adapter expects. Renamed to
+`User.chatSessions` to free up `sessions` for Auth.js's own relation.
+
 ## Consequences
 
 - The service layer (`src/lib/services`, `src/lib/ai`, `src/lib/repositories`)

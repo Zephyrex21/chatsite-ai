@@ -1,7 +1,10 @@
+import { auth } from '@/auth';
 import { ChatService } from '@/lib/services/chat/chat.service';
 import { ChatError, type ChatErrorCode } from '@/lib/services/chat/types';
 import { GeminiClient } from '@/lib/ai/gemini-client';
 import { PrismaChatSessionRepository } from '@/lib/repositories/chat-session.repository';
+import { expensiveRateLimit } from '@/lib/rate-limit/client';
+import { resolveRateLimitIdentifier } from '@/lib/rate-limit/identifier';
 
 const chatService = new ChatService(
   new GeminiClient(process.env.GEMINI_API_KEY ?? ''),
@@ -9,6 +12,18 @@ const chatService = new ChatService(
 );
 
 export async function POST(request: Request) {
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+
+  const identifier = resolveRateLimitIdentifier({
+    userId,
+    ip: request.headers.get('x-forwarded-for'),
+  });
+  const { success } = await expensiveRateLimit.limit(identifier);
+  if (!success) {
+    return jsonError('Too many requests. Try again shortly.', 429);
+  }
+
   let body: unknown;
   try {
     body = await request.json();

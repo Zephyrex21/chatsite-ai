@@ -21,8 +21,12 @@ export class ChatService {
     private readonly sessionRepository: ChatSessionRepository,
   ) {}
 
-  async createSession(siteId: string): Promise<ChatSessionWithHistory> {
-    return this.sessionRepository.create(siteId);
+  async createSession(siteId: string, userId?: string | null): Promise<ChatSessionWithHistory> {
+    return this.sessionRepository.create(siteId, userId);
+  }
+
+  async listSessionsForUser(userId: string): Promise<ChatSessionWithHistory[]> {
+    return this.sessionRepository.findByUser(userId);
   }
 
   async *ask(sessionId: string, question: string): AsyncGenerator<string> {

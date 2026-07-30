@@ -19,8 +19,10 @@ flowchart TD
     AI --> Gemini[Google Gemini API]
     Services --> Firecrawl[Firecrawl API]
 
-    Next --> Auth[NextAuth.js]
-    Auth --> OAuth[GitHub / Google OAuth]
+    Routes --> Auth["auth() checks (per-route, not middleware)"]
+    Auth --> AuthJs[Auth.js v5 — JWT sessions]
+    AuthJs --> OAuth[GitHub / Google OAuth]
+    AuthJs -.persists users/accounts.-> Repos
 
     Next --> Sentry[Sentry — error tracking]
 ```

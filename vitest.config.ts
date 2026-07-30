@@ -26,6 +26,10 @@ export default defineConfig({
         // assumptions of its wire format rather than reality — verified
         // via a manual smoke test with a real API key instead (see README).
         'src/lib/ai/gemini-client.ts',
+        // Same reasoning: thin instantiation of the Upstash Redis/Ratelimit
+        // clients. The identifier-resolution logic that actually has
+        // branching behavior lives in identifier.ts and is fully tested.
+        'src/lib/rate-limit/client.ts',
       ],
       thresholds: {
         lines: 80,

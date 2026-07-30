@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import { ScrapingService } from '@/lib/services/scraping/scraping.service';
 import { FirecrawlProvider } from '@/lib/services/scraping/firecrawl-provider';
 import { ScraperError, type ScraperErrorCode } from '@/lib/services/scraping/types';
 import { PrismaScrapedSiteRepository } from '@/lib/repositories/scraped-site.repository';
+import { expensiveRateLimit } from '@/lib/rate-limit/client';
+import { resolveRateLimitIdentifier } from '@/lib/rate-limit/identifier';
 
 // Constructed once per server instance, not per-request — the provider and
 // repository are cheap to hold onto and this avoids re-reading env vars on
@@ -13,6 +16,16 @@ const scrapingService = new ScrapingService(
 );
 
 export async function POST(request: Request) {
+  const session = await auth();
+  const identifier = resolveRateLimitIdentifier({
+    userId: session?.user?.id ?? null,
+    ip: request.headers.get('x-forwarded-for'),
+  });
+  const { success } = await expensiveRateLimit.limit(identifier);
+  if (!success) {
+    return NextResponse.json({ error: 'Too many requests. Try again shortly.' }, { status: 429 });
+  }
+
   let body: unknown;
   try {
     body = await request.json();

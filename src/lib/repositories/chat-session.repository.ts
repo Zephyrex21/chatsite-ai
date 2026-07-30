@@ -11,15 +11,16 @@ export type ChatSessionWithHistory = Prisma.ChatSessionGetPayload<{
  * in-memory fake instead of a real database.
  */
 export interface ChatSessionRepository {
-  create(siteId: string): Promise<ChatSessionWithHistory>;
+  create(siteId: string, userId?: string | null): Promise<ChatSessionWithHistory>;
   findWithHistory(sessionId: string): Promise<ChatSessionWithHistory | null>;
+  findByUser(userId: string): Promise<ChatSessionWithHistory[]>;
   addMessage(sessionId: string, role: 'user' | 'assistant', content: string): Promise<void>;
 }
 
 export class PrismaChatSessionRepository implements ChatSessionRepository {
-  async create(siteId: string): Promise<ChatSessionWithHistory> {
+  async create(siteId: string, userId?: string | null): Promise<ChatSessionWithHistory> {
     return prisma.chatSession.create({
-      data: { siteId },
+      data: { siteId, userId: userId ?? null },
       include: { site: true, messages: true },
     });
   }
@@ -28,6 +29,14 @@ export class PrismaChatSessionRepository implements ChatSessionRepository {
     return prisma.chatSession.findUnique({
       where: { id: sessionId },
       include: { site: true, messages: { orderBy: { createdAt: 'asc' } } },
+    });
+  }
+
+  async findByUser(userId: string): Promise<ChatSessionWithHistory[]> {
+    return prisma.chatSession.findMany({
+      where: { userId },
+      include: { site: true, messages: { orderBy: { createdAt: 'asc' } } },
+      orderBy: { updatedAt: 'desc' },
     });
   }
 

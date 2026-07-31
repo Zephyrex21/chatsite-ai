@@ -3,9 +3,9 @@
 Paste a URL, get a grounded AI chat about that page's actual content.
 Built as a portfolio-grade project — not a demo, a production-shaped app.
 
-**Status:** Phase 0-4 complete (Architecture, DevEx Foundation, the scrape
-service, the AI chat service, and auth). No UI yet — see
-[Roadmap](#roadmap) below.
+**Status:** Phase 0-5 complete (Architecture, DevEx Foundation, scraping,
+AI chat, auth, and the claymorphic UI). See [Roadmap](#roadmap) below for
+what's left.
 
 ---
 
@@ -22,6 +22,25 @@ for the system diagram and layer responsibilities.
 ---
 
 ## Getting started
+
+### Try the full app in a browser
+
+With `.env.local` fully set up (see the setup steps below) and `npm run dev` running, visit `http://localhost:3000` — paste a real URL, hit "Start chatting," and you land on a live chat screen for that page, streaming answers as they generate. This is the actual product now, not just API endpoints.
+
+**Scope note on this phase:** the blueprint's original Phase 5 plan
+included a full Storybook component showcase and a formal Lighthouse
+accessibility audit. Neither happened here — I don't have a real browser
+in this environment to visually verify rendering or run Lighthouse
+against, and shipping an unverified Storybook config felt worse than
+being upfront about skipping it. What _is_ in place: semantic HTML
+throughout, visible focus rings on every interactive element (the
+`:focus-visible` rule in `globals.css`), `aria-live` on the message
+thread so screen readers announce streaming responses, labeled form
+controls (including visually-hidden labels where a placeholder already
+communicates purpose), and `prefers-reduced-motion` respected globally.
+Please do a real pass yourself — keyboard-only navigation through the
+whole flow, and a screen reader spot-check — and tell me what you find;
+I'd rather fix real issues you hit than guess at ones I can't see.
 
 ### Prerequisites
 
@@ -259,13 +278,17 @@ staged files before every commit.
 ```
 src/
   app/
+    page.tsx                    → landing page: URL input hero
+    chat/[sessionId]/page.tsx    → chat screen: history load + streaming
+    providers.tsx                → next-themes wrapper (dark mode)
+    globals.css                  → claymorphism design tokens (light + dark)
     api/
-      scrape/route.ts          → POST endpoint, thin wrapper over ScrapingService
-      chat/route.ts            → POST endpoint, streams ChatService.ask()
-      chat/session/route.ts    → POST endpoint, composes scraping + chat to start a session
-      chat/sessions/route.ts   → GET endpoint, per-user session history (requires auth)
-      auth/[...nextauth]/route.ts → Auth.js catch-all route (sign-in, callbacks, sign-out)
-    (pages)                    → routes & pages (thin, no business logic)
+      scrape/route.ts                    → POST, thin wrapper over ScrapingService
+      chat/route.ts                      → POST, streams ChatService.ask()
+      chat/session/route.ts              → POST, composes scraping + chat to start a session
+      chat/session/[sessionId]/route.ts  → GET, session details + message history
+      chat/sessions/route.ts             → GET, per-user session history (requires auth)
+      auth/[...nextauth]/route.ts        → Auth.js catch-all route
   auth.config.ts                → edge-safe Auth.js config: providers, callbacks, pages
   auth.ts                       → adds the Prisma adapter, forces JWT session strategy
   lib/
@@ -276,11 +299,13 @@ src/
     ai/                         → GeminiClient, prompt builder, shared types
     rate-limit/                 → identifier.ts (pure, tested) + client.ts (Upstash instances)
     validation/                 → input validation (e.g. SSRF-safe URL checks)
+    cx.ts                       → tiny class-name join helper
   types/
     next-auth.d.ts               → module augmentation for session.user.id
   components/
-    ui/                         → design-system primitives (Button, Card, Input, ...)
-    chat/                       → feature-specific chat components
+    ui/                          → Button, Card, TextInput, Skeleton, ThemeToggle
+    chat/                        → ChatBubble, ChatComposer, SitePreviewCard
+    layout/                      → Header
 tests/
   unit/                         → Vitest, fast, no external calls
   integration/                  → Vitest + MSW, mocked external HTTP APIs
@@ -305,7 +330,7 @@ at once — each phase ships as a working, tested increment.
 - [x] **Phase 2 — Core Scrape Service**: Firecrawl integration, caching, SSRF-safe validation
 - [x] **Phase 3 — AI Chat Service**: Gemini integration, streaming, prompt-injection resistant grounding
 - [x] **Phase 4 — Auth & Multi-User**: NextAuth, guest mode, per-user rate limiting
-- [ ] **Phase 5 — Claymorphic UI**: full design system, component library, accessibility pass
+- [x] **Phase 5 — Claymorphic UI**: design system, component library, functional end-to-end flow
 - [ ] **Phase 6 — Feature Depth**: full-site crawl, session history, export, shareable links
 - [ ] **Phase 7 — Security Hardening**: dependency audit, abuse-case testing
 - [ ] **Phase 8 — Observability**: Sentry, structured logging, analytics

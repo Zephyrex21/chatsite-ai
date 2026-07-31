@@ -1,9 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-
-// NOTE: Typography is finalized in Phase 5 (claymorphism UI build). Using the
-// system font stack for now keeps builds fast and network-independent —
-// no external font CDN call at build time.
+import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: 'ChatSite — Chat With Any Website',
@@ -16,8 +13,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="flex min-h-full flex-col">{children}</body>
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
+      <body className="flex min-h-full flex-col bg-(--clay-bg) font-sans">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

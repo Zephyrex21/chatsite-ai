@@ -157,6 +157,59 @@ _did_ originally point at `ChatSession[]`, which would have collided
 with the relation name Auth.js's adapter expects. Renamed to
 `User.chatSessions` to free up `sessions` for Auth.js's own relation.
 
+### Claymorphism design tokens as CSS custom properties, not a JS theme file
+
+**Decision:** all design tokens (colors, radii, shadows) live as CSS
+custom properties in `globals.css`, using Tailwind v4's `@theme inline`
+block and the `bg-(--my-token)` shorthand syntax to consume them —
+deliberately not Tailwind v3-style config-file theming.
+
+**Why:** Tailwind v4 moved theming into CSS itself; fighting that by
+reaching for a `tailwind.config.js` color palette would mean maintaining
+two sources of truth (the CSS variables dark-mode needs to swap, and a
+parallel JS object). One token file, referenced everywhere, means a
+color or shadow change never requires touching more than one place.
+
+**Why CSS variables specifically enable dark mode cleanly:** the same
+token _names_ (`--clay-bg`, `--clay-shadow-out`, etc.) resolve to
+different values under `:root` vs `:root.dark` — every component
+references the token, never a literal value, so no component needs its
+own dark-mode conditional.
+
+### Fonts self-hosted via npm (Fontsource) rather than next/font/google
+
+**Decision:** `@fontsource-variable/fredoka` (display) and
+`@fontsource-variable/plus-jakarta-sans` (body), imported directly in
+`globals.css`, instead of `next/font/google`.
+
+**Why:** this avoids a build-time network dependency on Google's font
+CDN entirely — the font files ship as part of `node_modules` like any
+other dependency. That's a genuine production benefit (one less external
+service that can make your build flaky) independent of my own
+environment's network restrictions, though it was also the only option
+that let me verify the build actually succeeds before handing it over.
+
+**Why these two typefaces specifically:** Fredoka's letterforms have
+soft, rounded terminals — chosen because that visually rhymes with the
+claymorphism aesthetic itself (soft, puffy, no hard edges), not picked as
+a generic "friendly rounded font." Plus Jakarta Sans pairs with it
+without competing, and stays fully readable at body-text sizes where a
+display face wouldn't.
+
+### No Storybook, no Lighthouse audit this phase
+
+**Decision:** skipped both, despite being in the original Phase 5 plan.
+
+**Why:** neither is honestly achievable without a real browser to verify
+against. A Storybook config I can't visually confirm renders correctly,
+or a Lighthouse score I can't actually run, would be worse than not
+claiming them — the same principle already applied to not
+mock-testing the Gemini SDK's wire format. What's verifiable without a
+browser (semantic HTML, focus-visible states, aria-live regions, labeled
+inputs, prefers-reduced-motion) is in place; a real accessibility and
+visual QA pass by an actual person is a known, explicit gap, not a
+silently skipped one.
+
 ## Consequences
 
 - The service layer (`src/lib/services`, `src/lib/ai`, `src/lib/repositories`)

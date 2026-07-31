@@ -25,6 +25,14 @@ export class ChatService {
     return this.sessionRepository.create(siteId, userId);
   }
 
+  async getSession(sessionId: string): Promise<ChatSessionWithHistory> {
+    const session = await this.sessionRepository.findWithHistory(sessionId);
+    if (!session) {
+      throw new ChatError('SESSION_NOT_FOUND', `No chat session found for id "${sessionId}".`);
+    }
+    return session;
+  }
+
   async listSessionsForUser(userId: string): Promise<ChatSessionWithHistory[]> {
     return this.sessionRepository.findByUser(userId);
   }

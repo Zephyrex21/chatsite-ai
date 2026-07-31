@@ -1,26 +1,132 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/fredoka';
+@import '@fontsource-variable/plus-jakarta-sans';
+
+/*
+ * Claymorphism design tokens.
+ *
+ * Palette: a cool violet base with a warm coral accent — the pairing gives
+ * the "soft clay" surfaces something to push against, rather than the
+ * monochrome look claymorphism tutorials often default to.
+ *
+ * Typography: Fredoka (display) was chosen deliberately, not as a generic
+ * "friendly rounded font" pick — its terminals are literally soft and
+ * doughy, which visually rhymes with the clay-slab UI rather than just
+ * decorating it. Plus Jakarta Sans (body) is clean and neutral enough not
+ * to compete with it.
+ */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* base surfaces */
+  --clay-bg: #e4e9f2;
+  --clay-surface: #eef1f8;
+  --clay-text: #2c2c3a;
+  --clay-text-muted: #6b6b7b;
+
+  /* palette */
+  --clay-primary: #6c63ff;
+  --clay-primary-dark: #5147e0;
+  --clay-primary-tint: #ece9ff;
+  --clay-accent: #ff8a65;
+  --clay-accent-dark: #f16a3f;
+  --clay-success: #4caf82;
+  --clay-danger: #e2665a;
+
+  /* radii */
+  --clay-radius-sm: 14px;
+  --clay-radius-md: 20px;
+  --clay-radius-lg: 28px;
+  --clay-radius-xl: 36px;
+
+  /* shadows — outer (raised) and inner (carved/pressed) */
+  --clay-shadow-out: 8px 8px 20px rgba(163, 177, 198, 0.5), -8px -8px 20px rgba(255, 255, 255, 0.8);
+  --clay-shadow-out-sm:
+    4px 4px 10px rgba(163, 177, 198, 0.45), -4px -4px 10px rgba(255, 255, 255, 0.75);
+  --clay-shadow-in:
+    inset 6px 6px 14px rgba(163, 177, 198, 0.45), inset -6px -6px 14px rgba(255, 255, 255, 0.7);
+  --clay-shadow-pressed:
+    inset 4px 4px 10px rgba(163, 177, 198, 0.55), inset -4px -4px 10px rgba(255, 255, 255, 0.55);
+  --clay-shadow-focus: 0 0 0 4px var(--clay-primary-tint);
+
+  --clay-transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root.dark {
+  --clay-bg: #1b1d29;
+  --clay-surface: #21232f;
+  --clay-text: #eceefa;
+  --clay-text-muted: #9698ac;
+
+  --clay-primary: #8b83ff;
+  --clay-primary-dark: #a39cff;
+  --clay-primary-tint: #2c2a4a;
+  --clay-accent: #ff9d7a;
+  --clay-accent-dark: #ffb599;
+  --clay-success: #5fcf9c;
+  --clay-danger: #f08277;
+
+  --clay-shadow-out: 8px 8px 20px rgba(0, 0, 0, 0.45), -8px -8px 20px rgba(255, 255, 255, 0.03);
+  --clay-shadow-out-sm: 4px 4px 10px rgba(0, 0, 0, 0.4), -4px -4px 10px rgba(255, 255, 255, 0.03);
+  --clay-shadow-in:
+    inset 6px 6px 14px rgba(0, 0, 0, 0.5), inset -6px -6px 14px rgba(255, 255, 255, 0.02);
+  --clay-shadow-pressed:
+    inset 4px 4px 10px rgba(0, 0, 0, 0.55), inset -4px -4px 10px rgba(255, 255, 255, 0.02);
+  --clay-shadow-focus: 0 0 0 4px var(--clay-primary-tint);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --color-background: var(--clay-bg);
+  --color-foreground: var(--clay-text);
+  --font-sans: 'Plus Jakarta Sans Variable', system-ui, -apple-system, sans-serif;
+  --font-display: 'Fredoka Variable', 'Plus Jakarta Sans Variable', system-ui, sans-serif;
   --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--clay-bg);
+  color: var(--clay-text);
   font-family: var(--font-sans);
+  transition:
+    background-color var(--clay-transition),
+    color var(--clay-transition);
+}
+
+/* Visible keyboard focus everywhere — claymorphism's soft shadows alone
+   don't meet accessibility needs for focus visibility. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--clay-shadow-focus);
+  border-radius: var(--clay-radius-sm);
+}
+
+@keyframes clay-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(2%, -3%) scale(1.03);
+  }
+}
+
+.clay-blob {
+  animation: clay-float 14s ease-in-out infinite;
 }

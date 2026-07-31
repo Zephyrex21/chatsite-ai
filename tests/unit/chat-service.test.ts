@@ -226,4 +226,27 @@ describe('ChatService', () => {
     expect(sessions).toHaveLength(2);
     expect(sessions.map((s) => s.siteId)).toEqual(['site-1', 'site-3']);
   });
+
+  it('fetches a single session by id, including any prior messages', async () => {
+    const ai = new FakeAiClient(['ok']);
+    const repo = new FakeChatSessionRepository();
+    const service = new ChatService(ai, repo);
+    const created = await service.createSession('site-1');
+    await repo.addMessage(created.id, 'user', 'hi');
+
+    const fetched = await service.getSession(created.id);
+
+    expect(fetched.id).toBe(created.id);
+    expect(fetched.messages).toHaveLength(1);
+  });
+
+  it('throws SESSION_NOT_FOUND from getSession for an unknown id', async () => {
+    const ai = new FakeAiClient(['ok']);
+    const repo = new FakeChatSessionRepository();
+    const service = new ChatService(ai, repo);
+
+    await expect(service.getSession('nope')).rejects.toMatchObject({
+      code: 'SESSION_NOT_FOUND',
+    });
+  });
 });

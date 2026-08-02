@@ -94,6 +94,8 @@ function statusForChatError(code: ChatErrorCode): number {
   switch (code) {
     case 'SESSION_NOT_FOUND':
       return 404;
+    case 'INVALID_INPUT':
+      return 400;
     case 'AI_ERROR':
     default:
       return 502;

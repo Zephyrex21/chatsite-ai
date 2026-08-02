@@ -41,6 +41,44 @@ describe('validatePublicUrl', () => {
   it('rejects .local hostnames', () => {
     expect(validatePublicUrl('http://myserver.local').valid).toBe(false);
   });
+
+  it('rejects decimal, hex, and octal-encoded IPv4 loopback addresses', () => {
+    // These get canonicalized to 127.0.0.1 by the URL parser itself before
+    // our check ever runs — verifying that here rather than assuming it.
+    expect(validatePublicUrl('http://2130706433/').valid).toBe(false); // decimal
+    expect(validatePublicUrl('http://0x7f000001/').valid).toBe(false); // hex
+    expect(validatePublicUrl('http://0177.0.0.1/').valid).toBe(false); // octal
+    expect(validatePublicUrl('http://127.1/').valid).toBe(false); // shorthand
+  });
+
+  it('rejects IPv6 loopback and unspecified addresses', () => {
+    expect(validatePublicUrl('http://[::1]/').valid).toBe(false);
+    expect(validatePublicUrl('http://[::]/').valid).toBe(false);
+  });
+
+  it('rejects IPv6 link-local and unique-local ranges', () => {
+    expect(validatePublicUrl('http://[fe80::1]/').valid).toBe(false);
+    expect(validatePublicUrl('http://[fc00::1]/').valid).toBe(false);
+    expect(validatePublicUrl('http://[fd12:3456::1]/').valid).toBe(false);
+  });
+
+  it('rejects IPv4-mapped IPv6 addresses that embed a private IPv4 target', () => {
+    // Both the dotted form and the canonical hex-group form the URL parser
+    // normalizes it to — this is a known real SSRF-filter bypass technique.
+    expect(validatePublicUrl('http://[::ffff:127.0.0.1]/').valid).toBe(false);
+    expect(validatePublicUrl('http://[::ffff:7f00:1]/').valid).toBe(false);
+    expect(validatePublicUrl('http://[::ffff:10.0.0.5]/').valid).toBe(false);
+  });
+
+  it('does not over-block legitimate public IPv6 addresses', () => {
+    expect(validatePublicUrl('http://[2001:4860:4860::8888]/').valid).toBe(true); // Google DNS
+    expect(validatePublicUrl('http://[::ffff:8.8.8.8]/').valid).toBe(true); // public IPv4-mapped
+  });
+
+  it('rejects excessively long URLs', () => {
+    const hugeUrl = 'http://' + 'a'.repeat(3000) + '.com/';
+    expect(validatePublicUrl(hugeUrl).valid).toBe(false);
+  });
 });
 
 describe('normalizeUrl', () => {

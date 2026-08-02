@@ -31,6 +31,7 @@ export function ChatComposer({ onSend, disabled }: ChatComposerProps) {
         id="chat-composer-input"
         value={value}
         onChange={(e) => setValue(e.target.value)}
+        maxLength={4000}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();

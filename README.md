@@ -3,9 +3,9 @@
 Paste a URL, get a grounded AI chat about that page's actual content.
 Built as a portfolio-grade project — not a demo, a production-shaped app.
 
-**Status:** Phase 0-6 complete (Architecture, DevEx Foundation, scraping,
-AI chat, auth, the claymorphic UI, and session history/sharing/export).
-See [Roadmap](#roadmap) below for what's left.
+**Status:** Phase 0-7 complete (Architecture, DevEx Foundation, scraping,
+AI chat, auth, the claymorphic UI, session history/sharing/export, and a
+security hardening pass). See [Roadmap](#roadmap) below for what's left.
 
 ---
 
@@ -338,6 +338,7 @@ tests/
 docs/
   adr-0001-tech-stack.md        → why each major tech choice was made
   architecture.md                → system diagram + layer responsibilities
+  security-checklist.md          → Phase 7 findings, fixes, and accepted risks
 prisma/
   schema.prisma                  → User, Account, Session, VerificationToken,
                                     ScrapedSite, ChatSession, Message models
@@ -357,7 +358,7 @@ at once — each phase ships as a working, tested increment.
 - [x] **Phase 4 — Auth & Multi-User**: NextAuth, guest mode, per-user rate limiting
 - [x] **Phase 5 — Claymorphic UI**: design system, component library, functional end-to-end flow
 - [x] **Phase 6 — Feature Depth**: session history sidebar, shareable read-only links, Markdown export (full-site crawl mode deferred — see note below)
-- [ ] **Phase 7 — Security Hardening**: dependency audit, abuse-case testing
+- [x] **Phase 7 — Security Hardening**: SSRF gaps found and fixed, rate-limit gaps closed, input limits, dependency audit — see [`docs/security-checklist.md`](docs/security-checklist.md)
 - [ ] **Phase 8 — Observability**: Sentry, structured logging, analytics
 - [ ] **Phase 9 — Testing Consolidation**: Playwright E2E, accessibility regression checks
 - [ ] **Phase 10 — Documentation & Presentation**: demo video, case-study write-up

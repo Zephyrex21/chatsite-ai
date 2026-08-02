@@ -271,6 +271,29 @@ describe('ChatService', () => {
     });
   });
 
+  it('rejects a question over the length limit before calling the AI client', async () => {
+    const ai = new FakeAiClient(['ok']);
+    const repo = new FakeChatSessionRepository();
+    const service = new ChatService(ai, repo);
+    const session = await service.createSession('site-1');
+
+    const hugeQuestion = 'a'.repeat(4001);
+    await expect(service.ask(session.id, hugeQuestion).next()).rejects.toMatchObject({
+      code: 'INVALID_INPUT',
+    });
+    expect(ai.receivedParams).toHaveLength(0);
+  });
+
+  it('allows a question right at the length limit', async () => {
+    const ai = new FakeAiClient(['ok']);
+    const repo = new FakeChatSessionRepository();
+    const service = new ChatService(ai, repo);
+    const session = await service.createSession('site-1');
+
+    const maxLengthQuestion = 'a'.repeat(4000);
+    await expect(service.ask(session.id, maxLengthQuestion).next()).resolves.toBeTruthy();
+  });
+
   it('enables sharing and returns a slug that resolves back to the same session', async () => {
     const ai = new FakeAiClient(['ok']);
     const repo = new FakeChatSessionRepository();

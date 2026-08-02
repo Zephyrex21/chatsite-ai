@@ -30,6 +30,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Dependency audit (informational — see docs/security-checklist.md)
+        # Does not block the build: the known-remaining findings are nested
+        # inside Next.js's own dependency tree and unfixable without a
+        # multi-major-version downgrade (documented, accepted risk). This
+        # step exists so a *new*, actionable vulnerability shows up in CI
+        # logs on every run rather than requiring someone to remember to
+        # check by hand.
+        run: npm audit --audit-level=high || true
+
       - name: Generate Prisma client
         run: npx prisma generate
 

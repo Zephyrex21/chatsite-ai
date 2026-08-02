@@ -16,6 +16,15 @@ import { ChatError } from './types';
  * Gemini SDK or Prisma directly, so it's fully unit-testable with fakes.
  */
 export class ChatService {
+  /**
+   * Generous enough for any real question, but blocks someone from
+   * pasting megabytes of text into the question field — that would
+   * otherwise pass straight through to the Gemini call with no limit,
+   * inflating cost and risking hitting the model's context ceiling
+   * alongside the page content already in the prompt.
+   */
+  private static readonly MAX_QUESTION_LENGTH = 4000;
+
   constructor(
     private readonly aiClient: AiClient,
     private readonly sessionRepository: ChatSessionRepository,
@@ -53,6 +62,13 @@ export class ChatService {
   }
 
   async *ask(sessionId: string, question: string): AsyncGenerator<string> {
+    if (question.length > ChatService.MAX_QUESTION_LENGTH) {
+      throw new ChatError(
+        'INVALID_INPUT',
+        `Question is too long (max ${ChatService.MAX_QUESTION_LENGTH} characters).`,
+      );
+    }
+
     const session = await this.sessionRepository.findWithHistory(sessionId);
     if (!session) {
       throw new ChatError('SESSION_NOT_FOUND', `No chat session found for id "${sessionId}".`);

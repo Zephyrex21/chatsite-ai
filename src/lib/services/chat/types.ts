@@ -1,4 +1,4 @@
-export type ChatErrorCode = 'SESSION_NOT_FOUND' | 'AI_ERROR';
+export type ChatErrorCode = 'SESSION_NOT_FOUND' | 'AI_ERROR' | 'INVALID_INPUT';
 
 export class ChatError extends Error {
   readonly code: ChatErrorCode;

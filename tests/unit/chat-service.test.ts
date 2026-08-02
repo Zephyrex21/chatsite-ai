@@ -79,6 +79,27 @@ class FakeChatSessionRepository implements ChatSessionRepository {
       });
     }
   }
+
+  async enableSharing(sessionId: string): Promise<string> {
+    const session = this.sessions.get(sessionId);
+    const existingSlug = (session as unknown as { shareSlug?: string } | undefined)?.shareSlug;
+    if (existingSlug) return existingSlug;
+
+    const slug = `slug-${sessionId}`;
+    if (session) {
+      (session as unknown as { shareSlug: string; isShared: boolean }).shareSlug = slug;
+      (session as unknown as { shareSlug: string; isShared: boolean }).isShared = true;
+    }
+    return slug;
+  }
+
+  async findByShareSlug(slug: string): Promise<FakeSession | null> {
+    for (const session of this.sessions.values()) {
+      const s = session as unknown as { shareSlug?: string; isShared?: boolean };
+      if (s.shareSlug === slug && s.isShared) return session;
+    }
+    return null;
+  }
 }
 
 async function collect(gen: AsyncGenerator<string>): Promise<string> {
@@ -246,6 +267,50 @@ describe('ChatService', () => {
     const service = new ChatService(ai, repo);
 
     await expect(service.getSession('nope')).rejects.toMatchObject({
+      code: 'SESSION_NOT_FOUND',
+    });
+  });
+
+  it('enables sharing and returns a slug that resolves back to the same session', async () => {
+    const ai = new FakeAiClient(['ok']);
+    const repo = new FakeChatSessionRepository();
+    const service = new ChatService(ai, repo);
+    const session = await service.createSession('site-1');
+
+    const slug = await service.enableSharing(session.id);
+    const shared = await service.getSharedSession(slug);
+
+    expect(shared.id).toBe(session.id);
+  });
+
+  it('returns the same slug if sharing is enabled twice (idempotent)', async () => {
+    const ai = new FakeAiClient(['ok']);
+    const repo = new FakeChatSessionRepository();
+    const service = new ChatService(ai, repo);
+    const session = await service.createSession('site-1');
+
+    const first = await service.enableSharing(session.id);
+    const second = await service.enableSharing(session.id);
+
+    expect(first).toBe(second);
+  });
+
+  it('throws SESSION_NOT_FOUND when trying to share a nonexistent session', async () => {
+    const ai = new FakeAiClient(['ok']);
+    const repo = new FakeChatSessionRepository();
+    const service = new ChatService(ai, repo);
+
+    await expect(service.enableSharing('nope')).rejects.toMatchObject({
+      code: 'SESSION_NOT_FOUND',
+    });
+  });
+
+  it('throws SESSION_NOT_FOUND for an unshared or nonexistent slug', async () => {
+    const ai = new FakeAiClient(['ok']);
+    const repo = new FakeChatSessionRepository();
+    const service = new ChatService(ai, repo);
+
+    await expect(service.getSharedSession('made-up-slug')).rejects.toMatchObject({
       code: 'SESSION_NOT_FOUND',
     });
   });

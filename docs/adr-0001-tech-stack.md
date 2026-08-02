@@ -210,6 +210,44 @@ inputs, prefers-reduced-motion) is in place; a real accessibility and
 visual QA pass by an actual person is a known, explicit gap, not a
 silently skipped one.
 
+### Share links trust "knows the ID/slug", same as the rest of the app
+
+**Decision:** anyone who calls `POST /api/chat/session/[id]/share` can
+enable sharing for that session — no ownership check against the
+signed-in user.
+
+**Why this is consistent, not a hole:** the app never had per-session
+access control to begin with — `GET /api/chat/session/[id]` has always
+returned a session's content to anyone who has its id, guest or
+signed-in, since that's how a guest can use the product at all without
+an account. Sharing doesn't lower that bar, it just makes the same
+already-reachable content reachable via a shorter, deliberately-shared
+slug instead of the raw session id. Requiring ownership to _enable_
+sharing while anyone can already _view_ the session would be
+inconsistent, not more secure.
+
+**What this doesn't cover:** rate-limiting or expiring share links, and
+there's no "unshare" endpoint yet. Both are reasonable Phase 7 additions
+once there's an actual abuse case to design against, rather than
+speculative hardening now.
+
+### Full-site crawl mode deferred out of Phase 6
+
+**Decision:** did not implement Firecrawl's `/v2/crawl` endpoint this
+phase, despite it being in the original plan.
+
+**Why:** `/v2/scrape` (used since Phase 2) is a single request/response —
+straightforward to wrap in a service method. `/v2/crawl` is
+fundamentally different: it starts an asynchronous job and requires
+polling a status endpoint until it completes, often taking much longer
+than a single page scrape. Building this properly means job-status UI,
+polling logic, partial-progress handling, and much more deliberate
+credit-cost messaging (a crawl can burn through far more Firecrawl
+credits than a single scrape) — that's closer to its own contained
+feature than something to bolt on alongside session history, sharing, and
+export in the same pass. Deferred with a clear note rather than shipped
+half-built.
+
 ## Consequences
 
 - The service layer (`src/lib/services`, `src/lib/ai`, `src/lib/repositories`)

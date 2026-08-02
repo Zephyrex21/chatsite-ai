@@ -3,9 +3,9 @@
 Paste a URL, get a grounded AI chat about that page's actual content.
 Built as a portfolio-grade project — not a demo, a production-shaped app.
 
-**Status:** Phase 0-5 complete (Architecture, DevEx Foundation, scraping,
-AI chat, auth, and the claymorphic UI). See [Roadmap](#roadmap) below for
-what's left.
+**Status:** Phase 0-6 complete (Architecture, DevEx Foundation, scraping,
+AI chat, auth, the claymorphic UI, and session history/sharing/export).
+See [Roadmap](#roadmap) below for what's left.
 
 ---
 
@@ -218,18 +218,14 @@ me a joke instead" to see the prompt-injection framing hold up.
 
 With the OAuth apps and `AUTH_*` env vars set up:
 
-1. Visit `http://localhost:3000/api/auth/signin` in a browser (Auth.js's
-   built-in sign-in page — a custom-styled one comes in Phase 5) and sign
-   in with GitHub or Google.
+1. Click **Sign in** in the header and sign in with GitHub or Google.
 2. Check Prisma Studio (`npm run db:studio`) — you should see a new row in
    `users` and a linked row in `accounts`.
-3. With that browser session active, use its dev tools Network tab (or
-   just wait for the Phase 5 UI) to fire a `POST /api/chat/session` — the
-   session cookie goes along automatically, linking the new chat session
-   to your account.
-4. Check `GET /api/chat/sessions` in the same browser — it should list
-   the session you just created. Hit it without being signed in and it
-   returns `401`.
+3. Paste a URL and start a chat — since you're signed in, it's
+   automatically linked to your account.
+4. Check the sidebar (or `GET /api/chat/sessions` directly) — the
+   conversation you just started should appear in your history. Sign out
+   and it disappears (a guest's chats never show up in anyone's history).
 5. Confirm guest mode still works: repeat step 3 in an incognito window —
    the chat flow should complete exactly as before, just without
    appearing in anyone's history.
@@ -247,6 +243,30 @@ done
 
 You should see `200`s followed by `429`s once the 10-per-minute limit is
 hit.
+
+### Try session history, sharing, and export
+
+1. Sign in, then start two or three separate conversations (paste a URL,
+   ask a question, go back to `/` and repeat).
+2. The **sidebar** (left column on desktop, hamburger menu on mobile)
+   should list all of them — click one to jump back into that
+   conversation with its full history intact.
+3. Click the **share icon** (top of an active chat, next to the site
+   preview) — it copies a link to your clipboard. Open that link in an
+   incognito window: you should see the full conversation, read-only, no
+   composer, with a "Start your own conversation" button. Signing out
+   doesn't break this — shared links work for anyone who has them.
+4. Click the **download icon** next to it — you should get a `.md` file
+   with the site URL and the full conversation, readable as plain text.
+
+**Scope note:** full-site crawl mode (scraping every page of a site, not
+just the one URL) was in the original Phase 6 plan and got deferred.
+Firecrawl's crawl endpoint is asynchronous (start a job, poll until it
+finishes) rather than a single request/response like scrape — building
+that properly means job-status UI, polling logic, and credit-cost
+messaging, which is closer to its own mini-phase than a quick add-on.
+Documented as a deliberate cut, not a silently dropped feature — see
+ADR-0001.
 
 ### Full verification (what CI runs)
 
@@ -278,17 +298,22 @@ staged files before every commit.
 ```
 src/
   app/
-    page.tsx                    → landing page: URL input hero
-    chat/[sessionId]/page.tsx    → chat screen: history load + streaming
-    providers.tsx                → next-themes wrapper (dark mode)
-    globals.css                  → claymorphism design tokens (light + dark)
+    (main)/
+      layout.tsx                  → shared shell: header + sidebar, both pages render inside
+      page.tsx                    → landing page: URL input hero
+      chat/[sessionId]/page.tsx    → chat screen: history load, streaming, share/export
+      share/[slug]/page.tsx        → public read-only view of a shared conversation
+    providers.tsx                 → next-themes + Auth.js SessionProvider
+    globals.css                   → claymorphism design tokens (light + dark)
     api/
-      scrape/route.ts                    → POST, thin wrapper over ScrapingService
-      chat/route.ts                      → POST, streams ChatService.ask()
-      chat/session/route.ts              → POST, composes scraping + chat to start a session
-      chat/session/[sessionId]/route.ts  → GET, session details + message history
-      chat/sessions/route.ts             → GET, per-user session history (requires auth)
-      auth/[...nextauth]/route.ts        → Auth.js catch-all route
+      scrape/route.ts                           → POST, thin wrapper over ScrapingService
+      chat/route.ts                             → POST, streams ChatService.ask()
+      chat/session/route.ts                     → POST, composes scraping + chat to start a session
+      chat/session/[sessionId]/route.ts         → GET, session details + message history
+      chat/session/[sessionId]/share/route.ts   → POST, enables read-only sharing
+      chat/sessions/route.ts                    → GET, per-user session history (requires auth)
+      share/[slug]/route.ts                     → GET, public fetch of a shared conversation
+      auth/[...nextauth]/route.ts               → Auth.js catch-all route
   auth.config.ts                → edge-safe Auth.js config: providers, callbacks, pages
   auth.ts                       → adds the Prisma adapter, forces JWT session strategy
   lib/
@@ -305,7 +330,7 @@ src/
   components/
     ui/                          → Button, Card, TextInput, Skeleton, ThemeToggle
     chat/                        → ChatBubble, ChatComposer, SitePreviewCard
-    layout/                      → Header
+    layout/                      → Header, SessionSidebar
 tests/
   unit/                         → Vitest, fast, no external calls
   integration/                  → Vitest + MSW, mocked external HTTP APIs
@@ -331,7 +356,7 @@ at once — each phase ships as a working, tested increment.
 - [x] **Phase 3 — AI Chat Service**: Gemini integration, streaming, prompt-injection resistant grounding
 - [x] **Phase 4 — Auth & Multi-User**: NextAuth, guest mode, per-user rate limiting
 - [x] **Phase 5 — Claymorphic UI**: design system, component library, functional end-to-end flow
-- [ ] **Phase 6 — Feature Depth**: full-site crawl, session history, export, shareable links
+- [x] **Phase 6 — Feature Depth**: session history sidebar, shareable read-only links, Markdown export (full-site crawl mode deferred — see note below)
 - [ ] **Phase 7 — Security Hardening**: dependency audit, abuse-case testing
 - [ ] **Phase 8 — Observability**: Sentry, structured logging, analytics
 - [ ] **Phase 9 — Testing Consolidation**: Playwright E2E, accessibility regression checks

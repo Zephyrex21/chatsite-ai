@@ -37,6 +37,21 @@ export class ChatService {
     return this.sessionRepository.findByUser(userId);
   }
 
+  async enableSharing(sessionId: string): Promise<string> {
+    // Confirms the session actually exists first, so callers get a clean
+    // SESSION_NOT_FOUND instead of a confusing downstream Prisma error.
+    await this.getSession(sessionId);
+    return this.sessionRepository.enableSharing(sessionId);
+  }
+
+  async getSharedSession(slug: string): Promise<ChatSessionWithHistory> {
+    const session = await this.sessionRepository.findByShareSlug(slug);
+    if (!session) {
+      throw new ChatError('SESSION_NOT_FOUND', `No shared conversation found for this link.`);
+    }
+    return session;
+  }
+
   async *ask(sessionId: string, question: string): AsyncGenerator<string> {
     const session = await this.sessionRepository.findWithHistory(sessionId);
     if (!session) {

@@ -142,14 +142,18 @@ actionable.
   breaking change. Applied it, then re-ran `npm ci` to confirm the
   lockfile was still valid (the exact class of mistake that broke CI once
   already in this project — not repeating it silently).
-- **Remaining (accepted, not actionable):** 4 vulnerabilities (1
-  moderate, 3 high) in `postcss` and `sharp`, both nested transitive
-  dependencies _inside Next.js's own dependency tree_, not top-level
-  dependencies of this project. The only fix `npm audit` offers is
-  downgrading to `next@9.3.3` — a multi-major-version regression, not a
-  reasonable trade for these advisories. Tracked, not ignored: re-check
-  `npm audit` before each production deploy, since this resolves itself
-  once Next.js ships an update with patched nested deps.
+- **Remaining (accepted, not actionable):** `postcss` and `sharp`, both
+  nested transitive dependencies _inside Next.js's own dependency tree_,
+  not top-level dependencies of this project. The only fix `npm audit`
+  offers is downgrading to `next@9.3.3` — a multi-major-version
+  regression, not a reasonable trade for these advisories. Tracked, not
+  ignored: re-check `npm audit` before each production deploy, since this
+  resolves itself once Next.js ships an update with patched nested deps.
+  **Update, Phase 8:** the reported count rose from 4 to 7 (4 moderate, 3
+  high) after adding Sentry, Vercel Analytics, and Speed Insights — each
+  of those also depends on `next`, opening more graph paths to this same
+  already-known issue. Confirmed this is not a new, distinct problem:
+  same two packages, same root cause, same conclusion.
 - **Automated going forward:** added a non-blocking `npm audit
 --audit-level=high` step to CI (`.github/workflows/ci.yml`) — it won't
   fail the build over the accepted nested-dependency findings above, but

@@ -3,9 +3,10 @@
 Paste a URL, get a grounded AI chat about that page's actual content.
 Built as a portfolio-grade project — not a demo, a production-shaped app.
 
-**Status:** Phase 0-7 complete (Architecture, DevEx Foundation, scraping,
-AI chat, auth, the claymorphic UI, session history/sharing/export, and a
-security hardening pass). See [Roadmap](#roadmap) below for what's left.
+**Status:** Phase 0-8 complete (Architecture, DevEx Foundation, scraping,
+AI chat, auth, the claymorphic UI, session history/sharing/export,
+security hardening, and observability). See [Roadmap](#roadmap) below for
+what's left.
 
 ---
 
@@ -130,6 +131,23 @@ than creating a new OAuth App.
 Sign-in is never required to use the app — an anonymous visitor gets a
 fully working scrape-and-chat flow, just without saved history across
 visits. Auth only unlocks the "my sessions" list.
+
+### Setting up error tracking (Sentry) and the admin dashboard
+
+These are both optional for local development — the app runs fine without
+either configured — but worth setting up to see them in action:
+
+1. **Sentry** — [sentry.io](https://sentry.io) → create a free account →
+   create a new project (choose Next.js as the platform):
+   - Copy the DSN shown during setup into `.env.local` as
+     `NEXT_PUBLIC_SENTRY_DSN` (yes, `NEXT_PUBLIC_` is correct here — Sentry
+     DSNs are meant to be public, they're a destination identifier, not a
+     secret key).
+   - `SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_AUTH_TOKEN` are only needed for
+     source map upload during a real deploy — safe to leave blank locally.
+2. **Admin dashboard** — set `ADMIN_EMAIL` in `.env.local` to whatever
+   email you sign in with (GitHub/Google). Visit `/admin` while signed in
+   with that email to see usage stats; any other account gets a 403.
 
 ### Running tests
 
@@ -268,6 +286,26 @@ messaging, which is closer to its own mini-phase than a quick add-on.
 Documented as a deliberate cut, not a silently dropped feature — see
 ADR-0001.
 
+### Try observability (Sentry, structured logs, admin stats)
+
+1. With `NEXT_PUBLIC_SENTRY_DSN` set, trigger a real error — e.g. temporarily
+   break `GEMINI_API_KEY` and ask a question, or hit `/api/chat` with a
+   nonexistent `sessionId`. Check your Sentry project's Issues tab; it
+   should show up with a stack trace and the extra context (`event`,
+   `sessionId`, etc.) attached via `logger.error()`.
+2. Watch your terminal while using the app — every key action
+   (`scrape.requested`, `chat.requested`, `rate_limit.hit`, etc.) now
+   prints as a single structured JSON line instead of a plain string,
+   parseable by a real log aggregator later.
+3. Visit `/admin` signed in as your `ADMIN_EMAIL` — you should see live
+   counts (users, scraped sites, sessions, messages, shared conversations).
+   Sign in as a different account (or sign out) and hit `/api/admin/stats`
+   directly — should return `403`.
+4. Vercel Analytics/Speed Insights are no-ops locally by design — they
+   only report real data once deployed on Vercel. Nothing to verify
+   locally beyond confirming the app still runs with them mounted (it
+   does — `<Analytics />`/`<SpeedInsights />` render nothing visible).
+
 ### Full verification (what CI runs)
 
 ```bash
@@ -300,9 +338,12 @@ src/
   app/
     (main)/
       layout.tsx                  → shared shell: header + sidebar, both pages render inside
+      error.tsx                   → on-brand error boundary, reports to Sentry
       page.tsx                    → landing page: URL input hero
       chat/[sessionId]/page.tsx    → chat screen: history load, streaming, share/export
       share/[slug]/page.tsx        → public read-only view of a shared conversation
+      admin/page.tsx                → usage-stats dashboard (ADMIN_EMAIL-gated)
+    global-error.tsx              → root-level error boundary, reports to Sentry
     providers.tsx                 → next-themes + Auth.js SessionProvider
     globals.css                   → claymorphism design tokens (light + dark)
     api/
@@ -313,7 +354,12 @@ src/
       chat/session/[sessionId]/share/route.ts   → POST, enables read-only sharing
       chat/sessions/route.ts                    → GET, per-user session history (requires auth)
       share/[slug]/route.ts                     → GET, public fetch of a shared conversation
+      admin/stats/route.ts                      → GET, usage stats (ADMIN_EMAIL-gated)
       auth/[...nextauth]/route.ts               → Auth.js catch-all route
+  instrumentation.ts             → loads the right Sentry config per runtime
+  instrumentation-client.ts      → client-side Sentry init
+  sentry.server.config.ts        → Node.js runtime Sentry init
+  sentry.edge.config.ts          → Edge runtime Sentry init
   auth.config.ts                → edge-safe Auth.js config: providers, callbacks, pages
   auth.ts                       → adds the Prisma adapter, forces JWT session strategy
   lib/
@@ -324,7 +370,9 @@ src/
     ai/                         → GeminiClient, prompt builder, shared types
     rate-limit/                 → identifier.ts (pure, tested) + client.ts (Upstash instances)
     validation/                 → input validation (e.g. SSRF-safe URL checks)
-    cx.ts                       → tiny class-name join helper
+    logger.ts                    → structured JSON logging, forwards errors to Sentry
+    admin.ts                     → ADMIN_EMAIL check for the admin dashboard
+    cx.ts                        → tiny class-name join helper
   types/
     next-auth.d.ts               → module augmentation for session.user.id
   components/
@@ -359,7 +407,7 @@ at once — each phase ships as a working, tested increment.
 - [x] **Phase 5 — Claymorphic UI**: design system, component library, functional end-to-end flow
 - [x] **Phase 6 — Feature Depth**: session history sidebar, shareable read-only links, Markdown export (full-site crawl mode deferred — see note below)
 - [x] **Phase 7 — Security Hardening**: SSRF gaps found and fixed, rate-limit gaps closed, input limits, dependency audit — see [`docs/security-checklist.md`](docs/security-checklist.md)
-- [ ] **Phase 8 — Observability**: Sentry, structured logging, analytics
+- [x] **Phase 8 — Observability**: Sentry (client/server/edge), structured JSON logging, Vercel Analytics + Speed Insights, a lightweight usage-stats admin page
 - [ ] **Phase 9 — Testing Consolidation**: Playwright E2E, accessibility regression checks
 - [ ] **Phase 10 — Documentation & Presentation**: demo video, case-study write-up
 

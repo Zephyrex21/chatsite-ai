@@ -6,6 +6,7 @@ import { ScraperError, type ScraperErrorCode } from '@/lib/services/scraping/typ
 import { PrismaScrapedSiteRepository } from '@/lib/repositories/scraped-site.repository';
 import { expensiveRateLimit } from '@/lib/rate-limit/client';
 import { resolveRateLimitIdentifier } from '@/lib/rate-limit/identifier';
+import { logger } from '@/lib/logger';
 
 // Constructed once per server instance, not per-request — the provider and
 // repository are cheap to hold onto and this avoids re-reading env vars on
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
   });
   const { success } = await expensiveRateLimit.limit(identifier);
   if (!success) {
+    logger.warn('rate_limit.hit', { route: '/api/scrape', identifier });
     return NextResponse.json({ error: 'Too many requests. Try again shortly.' }, { status: 429 });
   }
 
@@ -38,17 +40,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'A "url" string field is required.' }, { status: 400 });
   }
 
+  logger.info('scrape.requested', { url, identifier });
+
   try {
     const result = await scrapingService.scrapeUrl(url);
+    logger.info('scrape.completed', { url, fromCache: result.fromCache });
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof ScraperError) {
+      logger.warn('scrape.failed', { url, code: err.code, message: err.message });
       return NextResponse.json(
         { error: err.message, code: err.code },
         { status: statusForErrorCode(err.code) },
       );
     }
-    console.error('Unexpected /api/scrape error:', err);
+    logger.error('scrape.unexpected_error', err, { url });
     return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
   }
 }

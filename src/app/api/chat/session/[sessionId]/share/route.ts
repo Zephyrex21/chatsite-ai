@@ -6,6 +6,7 @@ import { GeminiClient } from '@/lib/ai/gemini-client';
 import { PrismaChatSessionRepository } from '@/lib/repositories/chat-session.repository';
 import { apiRateLimit } from '@/lib/rate-limit/client';
 import { resolveRateLimitIdentifier } from '@/lib/rate-limit/identifier';
+import { logger } from '@/lib/logger';
 
 const chatService = new ChatService(
   new GeminiClient(process.env.GEMINI_API_KEY ?? ''),
@@ -31,17 +32,22 @@ export async function POST(
   });
   const { success } = await apiRateLimit.limit(identifier);
   if (!success) {
+    logger.warn('rate_limit.hit', {
+      route: '/api/chat/session/[sessionId]/share',
+      identifier,
+    });
     return NextResponse.json({ error: 'Too many requests. Try again shortly.' }, { status: 429 });
   }
 
   try {
     const slug = await chatService.enableSharing(sessionId);
+    logger.info('chat_session.shared', { sessionId });
     return NextResponse.json({ shareSlug: slug, shareUrl: `/share/${slug}` });
   } catch (err) {
     if (err instanceof ChatError) {
       return NextResponse.json({ error: err.message, code: err.code }, { status: 404 });
     }
-    console.error('Unexpected /api/chat/session/[sessionId]/share error:', err);
+    logger.error('chat_session.share_unexpected_error', err, { sessionId });
     return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
   }
 }

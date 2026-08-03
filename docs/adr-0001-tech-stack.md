@@ -248,6 +248,53 @@ feature than something to bolt on alongside session history, sharing, and
 export in the same pass. Deferred with a clear note rather than shipped
 half-built.
 
+### Structured logger wraps Sentry, rather than scattering Sentry calls everywhere
+
+**Decision:** all server-side error reporting goes through
+`logger.error()` (`src/lib/logger.ts`), which both prints a structured
+JSON line and calls `Sentry.captureException()` internally. Route
+handlers never call Sentry directly.
+
+**Why:** every route handler already needed _some_ form of error
+logging; giving that single call site the additional job of also
+reporting to Sentry means observability is a property of using the
+logger correctly, not a second thing to remember to wire up per route.
+It also means swapping error-tracking providers later is a one-file
+change.
+
+**Why JSON lines instead of a logging library:** at this project's
+scale, `console.log(JSON.stringify(...))` is the entire feature a
+logging library would provide (structured, parseable output) without a
+new dependency. If this needed log levels controlled by environment,
+multiple transports, or sampling, that calculus would change.
+
+### Admin dashboard is deliberately crude, not a permission system
+
+**Decision:** `/admin` and `/api/admin/stats` check a single
+`ADMIN_EMAIL` environment variable against the signed-in user's email —
+no roles table, no permissions model.
+
+**Why this is honest, not lazy:** this is a Phase 8 "nice to have" for
+visibility into product health, not a multi-admin SaaS feature. Building
+a real role-based access control system for a single-admin portfolio
+project would be speculative complexity with no current use case driving
+it. The one place this comparison happens (`src/lib/admin.ts`) is exactly
+where a real permissions system would plug in later, if multiple admins
+were ever actually needed.
+
+### Sentry DSN is intentionally a `NEXT_PUBLIC_` variable
+
+**Decision:** `NEXT_PUBLIC_SENTRY_DSN`, not a server-only `SENTRY_DSN`.
+
+**Why this isn't a secrets-handling mistake:** a Sentry DSN is a
+destination identifier ("send events here"), not an authentication
+credential — Sentry's own setup docs use the `NEXT_PUBLIC_` prefix
+deliberately, since the client-side SDK needs it to report browser
+errors. This is a different category from the actual secrets audited in
+Phase 7 (`FIRECRAWL_API_KEY`, `GEMINI_API_KEY`, etc.), which remain
+server-only and were specifically verified not to leak into the client
+bundle.
+
 ## Consequences
 
 - The service layer (`src/lib/services`, `src/lib/ai`, `src/lib/repositories`)

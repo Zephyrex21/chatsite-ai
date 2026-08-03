@@ -9,6 +9,7 @@ import { GeminiClient } from '@/lib/ai/gemini-client';
 import { PrismaChatSessionRepository } from '@/lib/repositories/chat-session.repository';
 import { expensiveRateLimit } from '@/lib/rate-limit/client';
 import { resolveRateLimitIdentifier } from '@/lib/rate-limit/identifier';
+import { logger } from '@/lib/logger';
 
 const scrapingService = new ScrapingService(
   new FirecrawlProvider(process.env.FIRECRAWL_API_KEY ?? ''),
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
   });
   const { success } = await expensiveRateLimit.limit(identifier);
   if (!success) {
+    logger.warn('rate_limit.hit', { route: '/api/chat/session', identifier });
     return NextResponse.json({ error: 'Too many requests. Try again shortly.' }, { status: 429 });
   }
 
@@ -59,6 +61,8 @@ export async function POST(request: Request) {
     const site = await scrapingService.scrapeUrl(url);
     const chatSession = await chatService.createSession(site.id, userId);
 
+    logger.info('chat_session.created', { sessionId: chatSession.id, url, hasUser: !!userId });
+
     return NextResponse.json({
       sessionId: chatSession.id,
       site: { url: site.url, title: site.title },
@@ -67,7 +71,7 @@ export async function POST(request: Request) {
     if (err instanceof ScraperError) {
       return NextResponse.json({ error: err.message, code: err.code }, { status: 502 });
     }
-    console.error('Unexpected /api/chat/session error:', err);
+    logger.error('chat_session.unexpected_error', err, { url });
     return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
   }
 }

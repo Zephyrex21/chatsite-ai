@@ -179,6 +179,20 @@ describe('ChatService', () => {
     });
   });
 
+  it('wraps a non-AiError thrown from the AI client with a generic AI_ERROR message', async () => {
+    const ai = new FakeAiClient(async function* () {
+      throw new TypeError('something unrelated broke');
+    });
+    const repo = new FakeChatSessionRepository();
+    const session = await repo.create('site-1');
+    const service = new ChatService(ai, repo);
+
+    await expect(collect(service.ask(session.id, 'question'))).rejects.toMatchObject({
+      code: 'AI_ERROR',
+      message: 'The AI response failed unexpectedly.',
+    });
+  });
+
   it('still persists a partial answer if the stream is interrupted mid-way', async () => {
     const ai = new FakeAiClient(async function* () {
       yield 'partial ';

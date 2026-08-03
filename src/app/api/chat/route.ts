@@ -5,6 +5,7 @@ import { GeminiClient } from '@/lib/ai/gemini-client';
 import { PrismaChatSessionRepository } from '@/lib/repositories/chat-session.repository';
 import { expensiveRateLimit } from '@/lib/rate-limit/client';
 import { resolveRateLimitIdentifier } from '@/lib/rate-limit/identifier';
+import { logger } from '@/lib/logger';
 
 const chatService = new ChatService(
   new GeminiClient(process.env.GEMINI_API_KEY ?? ''),
@@ -21,6 +22,7 @@ export async function POST(request: Request) {
   });
   const { success } = await expensiveRateLimit.limit(identifier);
   if (!success) {
+    logger.warn('rate_limit.hit', { route: '/api/chat', identifier });
     return jsonError('Too many requests. Try again shortly.', 429);
   }
 
@@ -37,6 +39,8 @@ export async function POST(request: Request) {
     return jsonError('Both "sessionId" and "question" string fields are required.', 400);
   }
 
+  logger.info('chat.requested', { sessionId, questionLength: question.length });
+
   const generator = chatService.ask(sessionId, question);
 
   // Prime the generator once *before* returning a streaming Response. The
@@ -49,9 +53,10 @@ export async function POST(request: Request) {
     first = await generator.next();
   } catch (err) {
     if (err instanceof ChatError) {
+      logger.warn('chat.failed', { sessionId, code: err.code, message: err.message });
       return jsonError(err.message, statusForChatError(err.code), err.code);
     }
-    console.error('Unexpected /api/chat error:', err);
+    logger.error('chat.unexpected_error', err, { sessionId });
     return jsonError('An unexpected error occurred.', 500);
   }
 
@@ -65,8 +70,9 @@ export async function POST(request: Request) {
         for await (const chunk of generator) {
           controller.enqueue(encoder.encode(chunk));
         }
+        logger.info('chat.completed', { sessionId });
       } catch (err) {
-        console.error('Gemini stream interrupted mid-response:', err);
+        logger.error('chat.stream_interrupted', err, { sessionId });
         controller.enqueue(
           encoder.encode('\n\n[The response was interrupted. Please try asking again.]'),
         );

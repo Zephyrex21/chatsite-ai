@@ -30,6 +30,10 @@ export default defineConfig({
         // clients. The identifier-resolution logic that actually has
         // branching behavior lives in identifier.ts and is fully tested.
         'src/lib/rate-limit/client.ts',
+        // Thin Auth.js session wrapper — a single equality check against
+        // an env var, calling the already-excluded auth() helper. Nothing
+        // here to meaningfully unit test beyond what a mock would assert.
+        'src/lib/admin.ts',
       ],
       thresholds: {
         lines: 80,

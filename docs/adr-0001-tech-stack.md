@@ -303,3 +303,49 @@ bundle.
 - Any future service extraction (e.g. moving scraping to a background job
   queue) only requires changing what calls the service layer, not the
   service layer itself.
+
+---
+
+### Playwright: Chromium-only in CI, full flow gated behind real credentials
+
+**Decision:** the E2E suite runs against Chromium only (not the
+originally-planned Chromium + WebKit), and the one test exercising the
+complete real flow (`chat-flow.spec.ts`) only runs when
+`E2E_REAL_APIS=true` plus real Firecrawl/Gemini/Upstash credentials are
+present — it skips itself cleanly otherwise, both locally and in CI.
+
+**Why not mock the AI/scrape calls instead, the way `FirecrawlProvider`
+and `GeminiClient` are unit-tested?** Playwright's standard mocking tool,
+`page.route()`, intercepts requests the _browser_ makes. This app's
+scrape and chat calls happen inside Next.js API route handlers —
+server-side, initiated by the Node.js process, never by client-side
+`fetch`. There's nothing at the browser layer for Playwright to
+intercept. Properly mocking this would mean building a parallel
+dependency-injection seam specifically for E2E runs (an env-flag that
+swaps in fake service implementations at the route-handler level) —
+a real, legitimate pattern, but a meaningfully bigger addition than
+"write some Playwright tests," and one that risks the E2E suite
+testing the fakes' wiring rather than anything real. Gating behind real
+credentials keeps the test honest about what it actually proves, at the
+cost of not running by default.
+
+**Why Chromium-only:** WebKit and Firefox both roughly double E2E run
+time for coverage of browser-engine differences that matter most for
+complex custom rendering (canvas, exotic CSS) — lower-value here than in
+a project doing more unusual rendering work. The `webkit` project is
+present in `playwright.config.ts`, just commented out, for exactly the
+moment that trade-off changes (e.g. before a major release).
+
+### This phase's tests could not be run before delivery — a different kind of gap than usual
+
+Every other "couldn't verify live" note in this project (Prisma's engine
+binaries, Firecrawl/Gemini's real APIs) still had _some_ independent
+verification path — unit tests with mocks, or a live run once real
+credentials existed. Playwright is different: its browser binaries
+download from `cdn.playwright.dev`, which this sandbox's network access
+doesn't reach, meaning these specific tests were never executed even
+once, in any form, before being handed over. They're written carefully
+against the actual rendered component tree and Playwright's documented
+APIs, not guessed at — but that is a meaningfully weaker claim than
+everything else in this codebase, and it's called out this explicitly
+on purpose.

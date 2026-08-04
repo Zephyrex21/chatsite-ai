@@ -3,10 +3,10 @@
 Paste a URL, get a grounded AI chat about that page's actual content.
 Built as a portfolio-grade project — not a demo, a production-shaped app.
 
-**Status:** Phase 0-8 complete (Architecture, DevEx Foundation, scraping,
+**Status:** Phase 0-9 complete (Architecture, DevEx Foundation, scraping,
 AI chat, auth, the claymorphic UI, session history/sharing/export,
-security hardening, and observability). See [Roadmap](#roadmap) below for
-what's left.
+security hardening, observability, and Playwright E2E/accessibility
+tests). See [Roadmap](#roadmap) below for what's left.
 
 ---
 
@@ -306,6 +306,58 @@ ADR-0001.
    locally beyond confirming the app still runs with them mounted (it
    does — `<Analytics />`/`<SpeedInsights />` render nothing visible).
 
+### Running the E2E tests
+
+```bash
+npx playwright install chromium   # one-time, downloads the browser binary
+npm run test:e2e                  # headless run
+npm run test:e2e:ui               # interactive UI mode, easier for debugging
+```
+
+**Important — this is the one thing in this whole project I genuinely
+could not verify myself, and you're the first real check on it.**
+Playwright downloads its browser binaries from `cdn.playwright.dev`,
+which this sandbox's network access doesn't reach — the same category of
+constraint as Prisma's engine binaries back in Phase 1, except this time
+it means I could not run these tests even once, in any form, before
+handing them to you. Everything below is written carefully and reasoned
+through against the actual component code and Playwright's documented
+APIs, but "should work" and "verified working" are different claims, and
+I want to be direct about which one this is.
+
+What's covered:
+
+- **`tests/e2e/landing-page.spec.ts`** — hero renders, empty-URL
+  validation, dark mode toggle actually flips the theme, a full
+  keyboard-only walkthrough from page load to a focused submit button
+  (this directly closes a gap flagged back in Phase 5, where I noted a
+  keyboard-nav pass was a known, unverified assumption), and an
+  automated axe-core accessibility scan.
+- **`tests/e2e/sign-in.spec.ts`** — the sign-in button actually
+  navigates to Auth.js's sign-in route, plus an accessibility scan of
+  that page (which is Auth.js's own stock page, not yet custom-styled —
+  if this test ever fails, the fix is building a custom sign-in page,
+  not touching our own components).
+- **`tests/e2e/chat-flow.spec.ts`** — the full real flow (paste a URL,
+  land on a live chat session, ask a grounded question). This one is
+  gated behind `E2E_REAL_APIS=true` plus real `FIRECRAWL_API_KEY`,
+  `GEMINI_API_KEY`, and Upstash credentials, and **skips itself
+  cleanly** otherwise. Why: this app's scrape/AI calls happen
+  server-side, not via client-side `fetch`, so Playwright's usual
+  `page.route()` mocking (which only intercepts requests the _browser_
+  makes) can't fake Firecrawl/Gemini here. Run it for real with:
+  ```bash
+  E2E_REAL_APIS=true npm run test:e2e
+  ```
+
+CI runs the landing-page and sign-in suites automatically (against a
+real ephemeral Postgres service container — see `.github/workflows/ci.yml`,
+the separate `e2e` job). **That CI job also needs `prisma/migrations/`
+to already exist in this repo** — those files were generated on your
+machine back in Phase 4 (this sandbox never had a working Prisma CLI to
+generate them itself, per the Phase 1 note above), so they should already
+be committed. Watch the first real run of this CI job closely.
+
 ### Full verification (what CI runs)
 
 ```bash
@@ -382,7 +434,8 @@ src/
 tests/
   unit/                         → Vitest, fast, no external calls
   integration/                  → Vitest + MSW, mocked external HTTP APIs
-  e2e/                          → Playwright (added in Phase 9)
+  e2e/                          → Playwright: landing page, sign-in, gated full-flow test
+playwright.config.ts           → Chromium-only for CI speed; webkit project commented in
 docs/
   adr-0001-tech-stack.md        → why each major tech choice was made
   architecture.md                → system diagram + layer responsibilities
@@ -408,7 +461,7 @@ at once — each phase ships as a working, tested increment.
 - [x] **Phase 6 — Feature Depth**: session history sidebar, shareable read-only links, Markdown export (full-site crawl mode deferred — see note below)
 - [x] **Phase 7 — Security Hardening**: SSRF gaps found and fixed, rate-limit gaps closed, input limits, dependency audit — see [`docs/security-checklist.md`](docs/security-checklist.md)
 - [x] **Phase 8 — Observability**: Sentry (client/server/edge), structured JSON logging, Vercel Analytics + Speed Insights, a lightweight usage-stats admin page
-- [ ] **Phase 9 — Testing Consolidation**: Playwright E2E, accessibility regression checks
+- [x] **Phase 9 — Testing Consolidation**: Playwright E2E (keyboard-nav + axe-core accessibility scans, gated full-flow test), CI job with a real ephemeral Postgres
 - [ ] **Phase 10 — Documentation & Presentation**: demo video, case-study write-up
 
 ---

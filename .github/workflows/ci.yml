@@ -64,3 +64,67 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  e2e:
+    name: Playwright E2E tests
+    runs-on: ubuntu-latest
+    # Independent of the `verify` job — a slower browser-based suite
+    # shouldn't block fast feedback on lint/type/unit-test failures, and a
+    # flaky E2E run shouldn't be conflated with "the core checks failed."
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: e2e
+          POSTGRES_PASSWORD: e2e
+          POSTGRES_DB: e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: 'postgresql://e2e:e2e@localhost:5432/e2e'
+      AUTH_SECRET: 'e2e-test-secret-not-used-in-production'
+      AUTH_URL: 'http://localhost:3000'
+      # Deliberately absent: FIRECRAWL_API_KEY, GEMINI_API_KEY,
+      # UPSTASH_REDIS_REST_URL/TOKEN, E2E_REAL_APIS. Without these, the
+      # full-chat-flow test (tests/e2e/chat-flow.spec.ts) skips itself
+      # rather than failing — see that file's own comments for why. The
+      # landing-page and sign-in suites don't need any external API and
+      # run against this job's real ephemeral Postgres.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client and apply migrations
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

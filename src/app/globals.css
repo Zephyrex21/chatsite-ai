@@ -21,16 +21,26 @@
   --clay-bg: #e4e9f2;
   --clay-surface: #eef1f8;
   --clay-text: #2c2c3a;
-  --clay-text-muted: #6b6b7b;
+  /* Darkened from #6b6b7b — that value tested at 4.29:1 against
+     --clay-bg, just under WCAG AA's 4.5:1 minimum for normal text.
+     #5c5c6d measures 5.38:1 (verified with the actual sRGB luminance
+     formula, not eyeballed) — real margin, not threshold-hugging. */
+  --clay-text-muted: #5c5c6d;
 
   /* palette */
-  --clay-primary: #6c63ff;
-  --clay-primary-dark: #5147e0;
+  /* Darkened from #6c63ff — white text on that background measured
+     4.31:1, just under AA. #5a51e6 measures 5.59:1. */
+  --clay-primary: #5a51e6;
+  --clay-primary-dark: #463ec9;
   --clay-primary-tint: #ece9ff;
   --clay-accent: #ff8a65;
   --clay-accent-dark: #f16a3f;
   --clay-success: #4caf82;
-  --clay-danger: #e2665a;
+  /* Darkened from #e2665a — that measured only 2.96:1 against
+     --clay-surface, badly under AA. This color is used for form
+     validation error text, so poor contrast here is a real usability
+     problem, not just a technicality. #b8241a measures 5.62:1. */
+  --clay-danger: #b8241a;
 
   /* radii */
   --clay-radius-sm: 14px;
@@ -57,8 +67,13 @@
   --clay-text: #eceefa;
   --clay-text-muted: #9698ac;
 
-  --clay-primary: #8b83ff;
-  --clay-primary-dark: #a39cff;
+  /* Original #8b83ff measured only 3.09:1 with white button text — worse
+     than the light-mode bug axe actually caught, just not yet tested in
+     dark mode. #5347d9 measures 6.42:1. Slightly less "pop" against the
+     dark background than the original, brighter value — an accepted
+     trade-off for meeting contrast requirements. */
+  --clay-primary: #5347d9;
+  --clay-primary-dark: #6d62eb;
   --clay-primary-tint: #2c2a4a;
   --clay-accent: #ff9d7a;
   --clay-accent-dark: #ffb599;

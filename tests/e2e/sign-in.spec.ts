@@ -3,6 +3,16 @@ import AxeBuilder from '@axe-core/playwright';
 
 test.describe('Sign-in', () => {
   test('sign-in button navigates to the Auth.js sign-in page', async ({ page }) => {
+    // Generous timeout specifically here: this is the first test to hit
+    // /api/auth/*, a heavier route (provider config, adapter setup) than
+    // the plain landing page — under Playwright's parallel workers, a
+    // cold Next.js dev-server compile of this route can plausibly exceed
+    // the default 30s while several other tests compile other routes at
+    // the same time. If this still times out in isolation
+    // (`npx playwright test sign-in.spec.ts --workers=1`), that's a real
+    // bug, not dev-server contention.
+    test.setTimeout(60_000);
+
     await page.goto('/');
 
     await page.getByRole('button', { name: /sign in/i }).click();

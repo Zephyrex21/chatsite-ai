@@ -349,3 +349,41 @@ against the actual rendered component tree and Playwright's documented
 APIs, not guessed at — but that is a meaningfully weaker claim than
 everything else in this codebase, and it's called out this explicitly
 on purpose.
+
+### Custom sign-in page: built because a real test surfaced it, not planned upfront
+
+**Context:** `auth.config.ts` set `pages: { signIn: '/sign-in' }` back
+in Phase 4 — telling Auth.js "use my own page instead of your built-in
+one" — but no page was ever built at that route. This went unnoticed
+through Phases 4-9 because nothing exercised the actual sign-in button
+click end-to-end; unit tests mock `next-auth/react` entirely, and manual
+testing apparently always went straight to `/api/auth/signin` rather
+than clicking the real button.
+
+**What surfaced it:** a real Playwright E2E test, clicking the actual
+button and asserting on the resulting URL. The test failed with the
+browser sitting on `/sign-in` — a genuinely useful, concrete failure
+that pointed exactly at the gap, rather than a vague "something's off."
+This is precisely the kind of bug unit tests structurally can't catch
+(everything downstream of `next-auth/react` is mocked in the unit
+suite) and exactly what E2E testing is for.
+
+**Decision:** build the real page (`src/app/sign-in/`) rather than
+remove the `pages.signIn` override and fall back to Auth.js's stock
+page. A custom, on-brand sign-in screen is better UX and better
+portfolio material than the generic default — the override was the
+right call in Phase 4, just incomplete until now.
+
+**Why it lives outside the `(main)` route group:** the shared layout
+there renders the session history sidebar, which would show "sign in to
+see your history" directly beside a page whose entire purpose is
+letting you do exactly that — redundant at best, confusing at worst.
+`src/app/sign-in/` uses the root layout only (fonts, theme, providers),
+nothing else.
+
+**Why `page.tsx` and `SignInForm.tsx` are separate files:** the form
+needs `useSearchParams()` (Auth.js passes `callbackUrl` and `error` as
+query params to a custom sign-in page), which requires a Suspense
+boundary for the surrounding page to still statically prerender. Server
+component (`page.tsx`) wraps the client component (`SignInForm.tsx`) in
+`<Suspense>` — the standard, documented pattern for this exact situation.

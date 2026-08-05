@@ -333,11 +333,9 @@ What's covered:
   (this directly closes a gap flagged back in Phase 5, where I noted a
   keyboard-nav pass was a known, unverified assumption), and an
   automated axe-core accessibility scan.
-- **`tests/e2e/sign-in.spec.ts`** — the sign-in button actually
-  navigates to Auth.js's sign-in route, plus an accessibility scan of
-  that page (which is Auth.js's own stock page, not yet custom-styled —
-  if this test ever fails, the fix is building a custom sign-in page,
-  not touching our own components).
+- **`tests/e2e/sign-in.spec.ts`** — the sign-in button navigates to a real
+  custom-styled sign-in page (`/sign-in`), with both OAuth provider
+  buttons visible, plus an accessibility scan of that page.
 - **`tests/e2e/chat-flow.spec.ts`** — the full real flow (paste a URL,
   land on a live chat session, ask a grounded question). This one is
   gated behind `E2E_REAL_APIS=true` plus real `FIRECRAWL_API_KEY`,
@@ -395,6 +393,9 @@ src/
       chat/[sessionId]/page.tsx    → chat screen: history load, streaming, share/export
       share/[slug]/page.tsx        → public read-only view of a shared conversation
       admin/page.tsx                → usage-stats dashboard (ADMIN_EMAIL-gated)
+    sign-in/
+      page.tsx                     → Suspense wrapper (required for useSearchParams)
+      SignInForm.tsx                → the actual custom sign-in UI, outside (main) — no sidebar here
     global-error.tsx              → root-level error boundary, reports to Sentry
     providers.tsx                 → next-themes + Auth.js SessionProvider
     globals.css                   → claymorphism design tokens (light + dark)

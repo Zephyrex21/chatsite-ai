@@ -17,6 +17,9 @@ const eslintConfig = defineConfig([
     'coverage/**',
     'playwright-report/**',
     'test-results/**',
+    // Standalone CommonJS Node tooling scripts, not part of the app itself —
+    // the project's TS/React lint rules (no require(), etc.) don't apply.
+    'scripts/**',
   ]),
 ]);
 

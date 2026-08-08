@@ -83,6 +83,17 @@ npm run dev
 > re-added a `url = env(...)` line directly into `schema.prisma` — remove
 > it, the URL belongs in `prisma.config.ts` only.
 
+> **Automatic safeguard:** `npm install`/`npm ci` now automatically
+> re-runs `prisma generate` afterward (`scripts/postinstall.js`). This
+> exists because it's easy to forget: the generated Prisma client lives
+> in a folder that a fresh `npm install` clears but doesn't recreate —
+> only `prisma generate` does. If you ever see an error mentioning
+> `Cannot find module '.prisma/client/default'`, that's this exact
+> situation; run `npx prisma generate` manually. The postinstall hook
+> never fails your overall `npm install` even if it can't complete (e.g.
+> `.env.local` doesn't exist yet on a fresh clone) — it just prints a
+> warning and moves on.
+
 Visit `http://localhost:3000` — you should see a minimal placeholder page
 confirming the foundation is wired up correctly.
 

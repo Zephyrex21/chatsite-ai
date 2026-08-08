@@ -19,6 +19,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "prepare": "husky",
+    "postinstall": "node scripts/postinstall.js",
     "verify": "npm run lint && npm run typecheck && npm run format:check && npm run test"
   },
   "dependencies": {

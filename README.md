@@ -1,12 +1,40 @@
 # ChatSite — Chat With Any Website
 
-Paste a URL, get a grounded AI chat about that page's actual content.
-Built as a portfolio-grade project — not a demo, a production-shaped app.
+**Paste a URL. Ask it questions. Get answers grounded in what's actually
+on the page — not a hallucination, not a guess.**
 
-**Status:** Phase 0-9 complete (Architecture, DevEx Foundation, scraping,
-AI chat, auth, the claymorphic UI, session history/sharing/export,
-security hardening, observability, and Playwright E2E/accessibility
-tests). See [Roadmap](#roadmap) below for what's left.
+[![CI](https://github.com/Zephyrex21/chatsite-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/Zephyrex21/chatsite-ai/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-72%20passing-brightgreen)](docs/case-study.md#testing-philosophy)
+[![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen)](docs/case-study.md#testing-philosophy)
+[![License](https://img.shields.io/badge/license-MIT-blue)](#)
+
+<!--
+  Screenshot placeholder — drop a real one in here:
+  1. Run the app locally (npm run dev), open localhost:3000
+  2. Paste a real URL, ask a question, let it stream an answer
+  3. Screenshot the chat screen (light or dark mode, your call)
+  4. Save it as docs/images/chat-screenshot.png and uncomment the line below
+-->
+<!-- ![ChatSite in action](docs/images/chat-screenshot.png) -->
+
+**[Read the case study →](docs/case-study.md)** — the real story of
+building this: the decisions, a security bug found by an actual test
+(not imagined), and what I'd change at scale.
+
+---
+
+Built as a portfolio project — not a weekend demo, a production-shaped
+app. Ten phases, each one a real, working, tested increment:
+architecture and CI from day one, a real AI pipeline with prompt-
+injection defenses, auth with guest mode, a claymorphic design system
+built from real WCAG contrast math (not guessed colors), a security
+hardening pass that found and fixed a real SSRF bypass, and a Playwright
+E2E suite that caught a genuine gap (a configured-but-never-built
+sign-in page) that unit tests structurally couldn't.
+
+**Status:** all 10 phases complete. See [Roadmap](#roadmap) below for
+the phase-by-phase breakdown, or [`docs/case-study.md`](docs/case-study.md)
+for the narrative version.
 
 ---
 
@@ -14,7 +42,7 @@ tests). See [Roadmap](#roadmap) below for what's left.
 
 Next.js 16 (App Router, TypeScript strict) - Tailwind CSS 4 - PostgreSQL +
 Prisma - Firecrawl API - Google Gemini - Upstash Redis - NextAuth.js -
-Vitest + Playwright - GitHub Actions
+Sentry - Vitest + Playwright - GitHub Actions
 
 See [`docs/adr-0001-tech-stack.md`](docs/adr-0001-tech-stack.md) for the
 reasoning behind each choice, and [`docs/architecture.md`](docs/architecture.md)
@@ -392,6 +420,49 @@ staged files before every commit.
 
 ---
 
+## Deploying to production
+
+This is written for [Vercel](https://vercel.com) (free tier), since it's
+built by the same team as Next.js and needs the least configuration —
+but nothing here is Vercel-specific at the code level.
+
+1. **Push this repo to GitHub** (already done if you're reading this
+   from the repo) and import it in Vercel: **Add New → Project → select
+   this repo**.
+2. **Add every environment variable** from your `.env.local` into
+   Vercel's project settings (**Settings → Environment Variables**) —
+   all of them, including the ones that felt optional locally
+   (`SENTRY_ORG`, `ADMIN_EMAIL`, etc.). Two need different values than
+   local:
+   - `AUTH_URL` → your real deployed URL (e.g.
+     `https://chatsite-ai.vercel.app`), not `http://localhost:3000`.
+   - `DATABASE_URL` → still your Neon connection string; Neon works
+     the same in production as local, no separate database needed
+     unless you want to keep dev/prod data separate (optional, and a
+     reasonable next step if this gets real traffic).
+3. **Update your OAuth app callback URLs** — both GitHub and Google
+   need the production callback URL added (not replacing the localhost
+   one — OAuth apps support multiple registered callback URLs, so keep
+   both for local + deployed dev):
+   - GitHub: **Settings → Developer settings → OAuth Apps → your app**
+     → add `https://your-domain.vercel.app/api/auth/callback/github`
+   - Google: **Cloud Console → Credentials → your OAuth client** → add
+     `https://your-domain.vercel.app/api/auth/callback/google`
+4. **Deploy.** Vercel builds and runs `npm run build` automatically —
+   if that's been passing locally (`npm run build`), the deploy should
+   too.
+5. **Run the migration against your production database once**, from
+   your local machine, pointed at the same `DATABASE_URL` Vercel is
+   using: `npx prisma migrate deploy` (not `migrate dev` — that's for
+   local schema iteration; `deploy` is the non-interactive one meant
+   for this).
+
+Once it's live, add the URL to the top of this README and to
+[`docs/case-study.md`](docs/case-study.md)'s "Try it" section — an
+actual working link is worth more than any amount of description.
+
+---
+
 ## Project structure
 
 ```
@@ -452,6 +523,8 @@ docs/
   adr-0001-tech-stack.md        → why each major tech choice was made
   architecture.md                → system diagram + layer responsibilities
   security-checklist.md          → Phase 7 findings, fixes, and accepted risks
+  case-study.md                  → the narrative version — problem, decisions, real bugs found
+  demo-video-script.md            → shot-by-shot script for the demo recording
 prisma/
   schema.prisma                  → User, Account, Session, VerificationToken,
                                     ScrapedSite, ChatSession, Message models
@@ -474,7 +547,7 @@ at once — each phase ships as a working, tested increment.
 - [x] **Phase 7 — Security Hardening**: SSRF gaps found and fixed, rate-limit gaps closed, input limits, dependency audit — see [`docs/security-checklist.md`](docs/security-checklist.md)
 - [x] **Phase 8 — Observability**: Sentry (client/server/edge), structured JSON logging, Vercel Analytics + Speed Insights, a lightweight usage-stats admin page
 - [x] **Phase 9 — Testing Consolidation**: Playwright E2E (keyboard-nav + axe-core accessibility scans, gated full-flow test), CI job with a real ephemeral Postgres
-- [ ] **Phase 10 — Documentation & Presentation**: demo video, case-study write-up
+- [x] **Phase 10 — Documentation & Presentation**: case study, demo video script, deployment guide — see [`docs/case-study.md`](docs/case-study.md)
 
 ---
 

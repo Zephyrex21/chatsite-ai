@@ -387,3 +387,20 @@ query params to a custom sign-in page), which requires a Suspense
 boundary for the surrounding page to still statically prerender. Server
 component (`page.tsx`) wraps the client component (`SignInForm.tsx`) in
 `<Suspense>` — the standard, documented pattern for this exact situation.
+
+### Documentation kept as separate, purpose-built files rather than one long README
+
+**Decision:** the README stays focused on "how do I run and verify
+this," while `docs/case-study.md` carries the narrative (why it was
+built, what was hard, what I'd change), and `docs/security-checklist.md`
+/ `docs/architecture.md` stay as focused reference docs each covering
+one concern.
+
+**Why:** a README trying to be both a setup guide and a compelling
+portfolio narrative tends to do both jobs worse — someone cloning the
+repo to actually run it doesn't want to scroll past a security-bug
+story to find the `npm install` command, and someone evaluating the
+project for a portfolio read doesn't want to wade through env var
+tables to find out what was actually hard about building it. Splitting
+them lets each document be dense with the right information for its
+actual reader.

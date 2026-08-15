@@ -2,13 +2,14 @@ import { auth } from '@/auth';
 import { ChatService } from '@/lib/services/chat/chat.service';
 import { ChatError, type ChatErrorCode } from '@/lib/services/chat/types';
 import { GeminiClient } from '@/lib/ai/gemini-client';
+import { getGeminiApiKey } from '@/lib/ai/gemini-api-key';
 import { PrismaChatSessionRepository } from '@/lib/repositories/chat-session.repository';
 import { expensiveRateLimit } from '@/lib/rate-limit/client';
 import { resolveRateLimitIdentifier } from '@/lib/rate-limit/identifier';
 import { logger } from '@/lib/logger';
 
 const chatService = new ChatService(
-  new GeminiClient(process.env.GEMINI_API_KEY ?? ''),
+  new GeminiClient(getGeminiApiKey()),
   new PrismaChatSessionRepository(),
 );
 
@@ -53,7 +54,18 @@ export async function POST(request: Request) {
     first = await generator.next();
   } catch (err) {
     if (err instanceof ChatError) {
-      logger.warn('chat.failed', { sessionId, code: err.code, message: err.message });
+      if (err.code === 'AI_ERROR') {
+        // Unlike SESSION_NOT_FOUND/INVALID_INPUT (routine client-input
+        // cases, logged as warn below), an AI_ERROR means the Gemini call
+        // itself failed — a real backend problem worth error-level
+        // logging and a Sentry report. `err.cause` carries the actual
+        // underlying SDK error (status code, message) that produced the
+        // deliberately generic user-facing message; logging only
+        // `err.message` here would silently throw that root cause away.
+        logger.error('chat.ai_failed', err.cause ?? err, { sessionId, code: err.code });
+      } else {
+        logger.warn('chat.failed', { sessionId, code: err.code, message: err.message });
+      }
       return jsonError(err.message, statusForChatError(err.code), err.code);
     }
     logger.error('chat.unexpected_error', err, { sessionId });

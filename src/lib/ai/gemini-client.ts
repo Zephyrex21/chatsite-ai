@@ -22,14 +22,24 @@ type GeminiContent = { role: 'user' | 'model'; parts: [{ text: string }] };
 export class GeminiClient implements AiClient {
   private readonly ai: GoogleGenAI;
 
-  constructor(apiKey: string) {
-    // The SDK throws lazily on first real call if the key is bad/missing
-    // rather than at construction time, so we don't need our own guard here
-    // — a missing key surfaces as an AiError from streamAnswer() below.
+  constructor(private readonly apiKey: string) {
+    // The SDK throws lazily on first real call if the key is bad rather
+    // than at construction time — the explicit empty-string check in
+    // streamAnswer() below covers the "not set at all" case up front;
+    // a key that's present but *invalid* still surfaces as an AiError
+    // from the SDK call itself, same as before.
     this.ai = new GoogleGenAI({ apiKey });
   }
 
   async *streamAnswer(params: StreamAnswerParams): AsyncGenerator<string> {
+    if (this.apiKey.length === 0) {
+      // Fails fast with an explicit message instead of letting both the
+      // primary and fallback calls hit Google's servers and come back
+      // with an opaque auth error each — a missing key is a
+      // configuration problem, not something a model swap ever fixes.
+      throw new AiError('GEMINI_API_KEY is not configured.');
+    }
+
     const contents = buildContents(params);
 
     let stream: AsyncGenerator<{ text?: string }>;

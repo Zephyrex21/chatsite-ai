@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { ChatService } from '@/lib/services/chat/chat.service';
 import { ChatError } from '@/lib/services/chat/types';
 import { GeminiClient } from '@/lib/ai/gemini-client';
+import { getGeminiApiKey } from '@/lib/ai/gemini-api-key';
 import { PrismaChatSessionRepository } from '@/lib/repositories/chat-session.repository';
 import { apiRateLimit } from '@/lib/rate-limit/client';
 import { resolveRateLimitIdentifier } from '@/lib/rate-limit/identifier';
 import { logger } from '@/lib/logger';
 
 const chatService = new ChatService(
-  new GeminiClient(process.env.GEMINI_API_KEY ?? ''),
+  new GeminiClient(getGeminiApiKey()),
   new PrismaChatSessionRepository(),
 );
 

@@ -75,4 +75,33 @@ describe('logger', () => {
     const parsed = JSON.parse(consoleErrorSpy.mock.calls[0]?.[0] as string);
     expect(parsed.error).toBe('just a string, not an Error object');
   });
+
+  it('walks a two-level error cause chain instead of dropping it', () => {
+    // Mirrors the real shape in production: ChatError wraps an AiError,
+    // which itself wraps the raw SDK error. Before this fix, only the
+    // outer wrapper's message ever made it into the log.
+    const rootCause = new Error('403 PERMISSION_DENIED: API key does not have access');
+    const middleWrapper = new Error('Both Gemini models failed to start a response.');
+    (middleWrapper as unknown as { cause: unknown }).cause = rootCause;
+
+    logger.error('chat.ai_failed', middleWrapper, { sessionId: 'abc' });
+
+    const parsed = JSON.parse(consoleErrorSpy.mock.calls[0]?.[0] as string);
+    expect(parsed.error.message).toBe('Both Gemini models failed to start a response.');
+    expect(parsed.error.cause.message).toBe('403 PERMISSION_DENIED: API key does not have access');
+  });
+
+  it('stops walking the cause chain at a bounded depth rather than looping forever on a circular cause', () => {
+    const circular = new Error('circular');
+    (circular as unknown as { cause: unknown }).cause = circular;
+
+    expect(() => logger.error('weird.circular', circular)).not.toThrow();
+  });
+
+  it('omits `cause` entirely when the error has none', () => {
+    logger.error('scrape.failed', new Error('plain error, no cause'));
+
+    const parsed = JSON.parse(consoleErrorSpy.mock.calls[0]?.[0] as string);
+    expect(parsed.error.cause).toBeUndefined();
+  });
 });

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { withLibpqCompat } from './db-connection-string';
 
 /**
  * Prisma 7 requires a driver adapter for all databases (no more zero-config
@@ -10,7 +11,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
  * from spawning a new connection pool on every file save.
  */
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg({ connectionString: withLibpqCompat(process.env.DATABASE_URL) });
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 

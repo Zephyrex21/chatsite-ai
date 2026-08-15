@@ -10,6 +10,17 @@ interface SerializedError {
   message: string;
   stack?: string;
   name?: string;
+  // The actual bug this fixes: our own error classes (ChatError, AiError)
+  // wrap an underlying cause, sometimes two levels deep (ChatError wraps
+  // an AiError, which itself wraps the real SDK/network error). Without
+  // walking `.cause` recursively here, logging `err.cause ?? err` at the
+  // call site only ever surfaced the *next* wrapper's generic message —
+  // never the actual root error a third-party SDK threw. That's exactly
+  // what happened in production: `chat.ai_failed` logged the AiError's
+  // own "both models failed" text instead of Gemini's real underlying
+  // error, because this function silently dropped everything past the
+  // first level.
+  cause?: SerializedError | unknown;
 }
 
 /**
@@ -38,9 +49,17 @@ function write(level: LogLevel, event: string, context?: LogContext): void {
   else console.log(line);
 }
 
-function serializeError(error: unknown): SerializedError | unknown {
+function serializeError(error: unknown, depth = 0): SerializedError | unknown {
   if (error instanceof Error) {
-    return { message: error.message, stack: error.stack, name: error.name };
+    // Bounded depth (not a circular-reference check) — real error chains
+    // in this app are at most 2-3 levels deep, but an unbounded walk is
+    // one bad third-party error class away from an infinite loop if
+    // something ever sets `cause` to itself.
+    const cause =
+      depth < 5 && 'cause' in error && error.cause !== undefined
+        ? serializeError(error.cause, depth + 1)
+        : undefined;
+    return { message: error.message, stack: error.stack, name: error.name, cause };
   }
   return error;
 }

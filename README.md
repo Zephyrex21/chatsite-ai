@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/chatsite-readme-banner.svg" alt="ChatSite — Chat With Any Website" width="100%">
+</p>
+
 # ChatSite — Chat With Any Website
 
 **Paste a URL. Ask it questions. Get answers grounded in what's actually

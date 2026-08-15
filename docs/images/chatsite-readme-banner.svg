@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="500" viewBox="0 0 1600 500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#EEF1F8"/>
+      <stop offset="100%" stop-color="#E4E9F2"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6C63FF"/>
+      <stop offset="100%" stop-color="#463EC9"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="10" dy="12" stdDeviation="18" flood-color="#A3B1C6" flood-opacity=".38"/>
+      <feDropShadow dx="-8" dy="-8" stdDeviation="14" flood-color="#FFFFFF" flood-opacity=".72"/>
+    </filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="22" flood-color="#5148D8" flood-opacity=".18"/>
+    </filter>
+    <clipPath id="browserClip">
+      <rect x="918" y="82" width="570" height="330" rx="28"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1600" height="500" fill="url(#bg)"/>
+
+  <!-- Decorative clay blobs -->
+  <circle cx="1525" cy="58" r="120" fill="#ECE9FF" opacity=".85"/>
+  <circle cx="1428" cy="468" r="135" fill="#FFE4DB" opacity=".78"/>
+  <circle cx="100" cy="454" r="95" fill="#DDE2EF" opacity=".72"/>
+
+  <!-- Brand mark -->
+  <g transform="translate(92 94)" filter="url(#shadow)">
+    <rect x="0" y="0" width="76" height="76" rx="24" fill="url(#violet)"/>
+    <path d="M22 26h32c7.7 0 14 6.3 14 14v7c0 7.7-6.3 14-14 14H40l-11 10v-10h-7c-7.7 0-14-6.3-14-14v-7c0-7.7 6.3-14 14-14z"
+          transform="translate(4 -1) scale(.82)" fill="#FFFFFF" opacity=".96"/>
+    <circle cx="27" cy="40" r="4" fill="#FF9D7A"/>
+    <circle cx="39" cy="40" r="4" fill="#FF9D7A"/>
+    <circle cx="51" cy="40" r="4" fill="#FF9D7A"/>
+  </g>
+
+  <text x="92" y="230" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="18" font-weight="700"
+        letter-spacing="3.2" fill="#5A51E6">GROUNDED WEB INTELLIGENCE</text>
+
+  <text x="92" y="300" font-family="Fredoka, Plus Jakarta Sans, Arial, sans-serif" font-size="74"
+        font-weight="650" fill="#2C2C3A">ChatSite</text>
+
+  <text x="96" y="347" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="25"
+        font-weight="500" fill="#5C5C6D">Chat with any website.</text>
+  <text x="96" y="382" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="17"
+        font-weight="500" fill="#7B7B8B">Paste a URL · scrape context · ask questions · get grounded answers</text>
+
+  <!-- Tech micro-pills -->
+  <g transform="translate(94 420)">
+    <rect x="0" y="0" width="108" height="34" rx="17" fill="#F7F8FC"/>
+    <text x="54" y="22" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#4C4D5D">NEXT.JS</text>
+    <rect x="118" y="0" width="100" height="34" rx="17" fill="#F7F8FC"/>
+    <text x="168" y="22" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#4C4D5D">GEMINI</text>
+    <rect x="228" y="0" width="112" height="34" rx="17" fill="#F7F8FC"/>
+    <text x="284" y="22" text-anchor="middle" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="13" font-weight="700" fill="#4C4D5D">FIRECRAWL</text>
+  </g>
+
+  <!-- Browser / product visual -->
+  <g filter="url(#shadow)">
+    <rect x="918" y="82" width="570" height="330" rx="28" fill="#EEF1F8"/>
+  </g>
+
+  <!-- Browser top bar -->
+  <rect x="918" y="82" width="570" height="62" rx="28" fill="#F7F8FC"/>
+  <rect x="918" y="114" width="570" height="30" fill="#F7F8FC"/>
+  <circle cx="949" cy="112" r="6" fill="#D0D4DF"/>
+  <circle cx="969" cy="112" r="6" fill="#D0D4DF"/>
+  <circle cx="989" cy="112" r="6" fill="#D0D4DF"/>
+
+  <rect x="1020" y="96" width="414" height="31" rx="15.5" fill="#E8EBF3"/>
+  <circle cx="1040" cy="111.5" r="6" fill="#5A51E6" opacity=".9"/>
+  <text x="1055" y="116" font-family="SFMono-Regular, Consolas, monospace" font-size="11.5" fill="#666A79">example.com/article</text>
+
+  <!-- Site preview -->
+  <g clip-path="url(#browserClip)">
+    <rect x="952" y="160" width="174" height="224" rx="18" fill="#E7EAF2"/>
+    <rect x="973" y="184" width="128" height="14" rx="7" fill="#C7CBD8"/>
+    <rect x="973" y="211" width="104" height="8" rx="4" fill="#D0D4DF"/>
+    <rect x="973" y="230" width="118" height="8" rx="4" fill="#D0D4DF"/>
+    <rect x="973" y="249" width="92" height="8" rx="4" fill="#D0D4DF"/>
+    <rect x="973" y="278" width="128" height="7" rx="3.5" fill="#D0D4DF"/>
+    <rect x="973" y="293" width="114" height="7" rx="3.5" fill="#D0D4DF"/>
+    <rect x="973" y="308" width="122" height="7" rx="3.5" fill="#D0D4DF"/>
+
+    <!-- Chat panel -->
+    <rect x="1150" y="160" width="292" height="224" rx="18" fill="#F8F9FC"/>
+    <text x="1172" y="187" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="11" font-weight="800" letter-spacing="1.5" fill="#6A6C7A">CHAT WITH THIS PAGE</text>
+
+    <rect x="1170" y="204" width="218" height="38" rx="15" fill="#ECE9FF"/>
+    <text x="1188" y="227" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="11.5" font-weight="600" fill="#4A48A2">What is the main idea?</text>
+
+    <rect x="1170" y="254" width="245" height="67" rx="18" fill="#FFFFFF"/>
+    <circle cx="1190" cy="274" r="7" fill="#5A51E6"/>
+    <rect x="1206" y="264" width="158" height="6" rx="3" fill="#C9CCD8"/>
+    <rect x="1186" y="286" width="202" height="6" rx="3" fill="#D6D9E3"/>
+    <rect x="1186" y="300" width="172" height="6" rx="3" fill="#D6D9E3"/>
+
+    <rect x="1170" y="334" width="196" height="30" rx="15" fill="#FFF0EB"/>
+    <circle cx="1188" cy="349" r="5" fill="#FF8A65"/>
+    <text x="1202" y="353" font-family="Plus Jakarta Sans, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#A85742">GROUNDED RESPONSE</text>
+  </g>
+
+  <!-- subtle pipeline line -->
+  <path d="M826 246 C850 246 860 246 884 246" fill="none" stroke="#5A51E6" stroke-width="3" stroke-linecap="round" opacity=".28"/>
+  <circle cx="807" cy="246" r="8" fill="#5A51E6" opacity=".85"/>
+  <circle cx="890" cy="246" r="8" fill="#FF8A65" opacity=".95"/>
+</svg>

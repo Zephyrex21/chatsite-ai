@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
   logger.info('chat.requested', { sessionId, questionLength: question.length });
 
-  const generator = chatService.ask(sessionId, question);
+  const generator = chatService.ask(sessionId, question, userId);
 
   // Prime the generator once *before* returning a streaming Response. The
   // session-lookup failure (or an immediate AI failure) happens before the

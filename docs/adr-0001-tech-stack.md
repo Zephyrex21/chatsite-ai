@@ -89,14 +89,18 @@ single model's transient failures degrading the whole product.
 
 **Note on model choice and SDK:** uses `@google/genai` (the current unified
 SDK — the older `@google/generative-ai` package is deprecated). Model
-choice: `gemini-2.5-flash` as primary, `gemini-3.5-flash` as fallback. This
-was a deliberate choice of the _proven_ 2.5 generation for the primary
-call rather than the newer 3.x family — Gemini 3.x has iterated fast
+choice, as of Phase 9: `gemini-3.5-flash` as primary, `gemini-2.5-flash`
+as fallback. This was originally the reverse — 2.5 Flash primary, 3.5
+Flash fallback — on the reasoning that Gemini 3.x had iterated fast
 (several preview models shipped and were deprecated within weeks in mid-
 2026), which is exactly the kind of churn a primary/critical-path call
-shouldn't be exposed to. The stronger, newer 3.5 model is used only as the
-fallback, where its extra capability is more valuable than its shorter
-track record. Both model names are defined as single constants in
+shouldn't be exposed to. By Phase 9, 3.5 Flash had been GA long enough to
+no longer carry that risk, and is simply the more capable model — so it
+became primary, with 2.5 Flash kept as the fallback for its longer GA
+track record. (Gemini 3.6 Flash has also since reached GA and is cheaper
+than 3.5 Flash, but wasn't adopted as the fallback yet — a few weeks of
+GA history isn't enough runway for a fallback path, though it's worth
+revisiting.) Both model names are defined as single constants in
 `gemini-client.ts` — swapping either is a one-line change.
 
 **Note on testing strategy:** `ChatService` (the orchestration logic —
@@ -210,24 +214,35 @@ inputs, prefers-reduced-motion) is in place; a real accessibility and
 visual QA pass by an actual person is a known, explicit gap, not a
 silently skipped one.
 
-### Share links trust "knows the ID/slug", same as the rest of the app
+### Share links trust "knows the ID/slug" — for guest sessions only, as of Phase 9
 
-**Decision:** anyone who calls `POST /api/chat/session/[id]/share` can
-enable sharing for that session — no ownership check against the
-signed-in user.
-
-**Why this is consistent, not a hole:** the app never had per-session
-access control to begin with — `GET /api/chat/session/[id]` has always
-returned a session's content to anyone who has its id, guest or
-signed-in, since that's how a guest can use the product at all without
-an account. Sharing doesn't lower that bar, it just makes the same
-already-reachable content reachable via a shorter, deliberately-shared
-slug instead of the raw session id. Requiring ownership to _enable_
-sharing while anyone can already _view_ the session would be
+**Original Phase 6 decision:** anyone who calls
+`POST /api/chat/session/[id]/share` can enable sharing for that session —
+no ownership check against the signed-in user. The reasoning at the time:
+the app never had per-session access control to begin with —
+`GET /api/chat/session/[id]` returned a session's content to anyone who
+had its id, guest or signed-in, since that's how a guest can use the
+product at all without an account. Requiring ownership to _enable_
+sharing while anyone could already _view_ the session would have been
 inconsistent, not more secure.
 
-**What this doesn't cover:** rate-limiting or expiring share links, and
-there's no "unshare" endpoint yet. Both are reasonable Phase 7 additions
+**Revised in Phase 9:** that reasoning only actually held for guest
+sessions, which have no owner to check against in the first place. A
+session created while signed in genuinely does have an owner, and a
+Phase 9 audit flagged that the original "consistent, not a hole"
+argument was quietly extending a guest-mode necessity (no identity to
+check) into a signed-in context (where an identity to check against
+exists and just wasn't being checked). `GET /api/chat/session/[id]`,
+`POST /api/chat`, and `POST /api/chat/session/[id]/share` all now enforce
+that a signed-in user can only read, post into, or share their own
+sessions — a different signed-in user gets the same `SESSION_NOT_FOUND` a
+missing session produces. Guest sessions are unaffected: still reachable
+by anyone who knows the id, by design, since there's still no identity to
+check them against. See `ChatService.assertOwnership()` and
+`docs/security-checklist.md`'s Phase 9 section for the implementation.
+
+**What this still doesn't cover:** rate-limiting or expiring share links,
+and there's no "unshare" endpoint yet. Both are reasonable follow-ups
 once there's an actual abuse case to design against, rather than
 speculative hardening now.
 

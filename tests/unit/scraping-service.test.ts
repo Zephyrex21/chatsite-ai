@@ -43,6 +43,17 @@ class FakeScrapedSiteRepository implements ScrapedSiteRepository {
     return site as unknown as Awaited<ReturnType<ScrapedSiteRepository['upsert']>>;
   }
 
+  async deleteExpired(): Promise<number> {
+    let count = 0;
+    for (const [url, site] of this.store) {
+      if (site.expiresAt && site.expiresAt.getTime() < Date.now()) {
+        this.store.delete(url);
+        count++;
+      }
+    }
+    return count;
+  }
+
   /** Test helper: seed the cache directly, bypassing upsert(). */
   seed(url: string, site: FakeScrapedSite) {
     this.store.set(url, site);

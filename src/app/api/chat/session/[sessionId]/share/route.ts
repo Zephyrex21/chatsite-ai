@@ -14,10 +14,16 @@ const chatService = new ChatService(
 );
 
 /**
- * Anyone who already has a sessionId can enable sharing for it — the same
- * trust boundary the rest of the app already uses (a session's contents
- * are accessible to anyone who knows its id, guest or signed-in; sharing
- * just makes that access possible without exposing the raw sessionId).
+ * A guest (never-signed-in) session has no owner, so anyone who already
+ * has its sessionId can enable sharing for it — there's no identity to
+ * check ownership against in the first place, and sharing just makes that
+ * same access possible without exposing the raw sessionId.
+ *
+ * A session created while signed in *does* have an owner: only that user
+ * can enable sharing on it (enforced by ChatService.enableSharing() via
+ * the same ownership check `GET /api/chat/session/[sessionId]` and
+ * `POST /api/chat` use). A different signed-in user who merely learned
+ * the id gets SESSION_NOT_FOUND, same as a genuinely missing session.
  */
 export async function POST(
   request: Request,
@@ -26,8 +32,9 @@ export async function POST(
   const { sessionId } = await params;
 
   const session = await auth();
+  const userId = session?.user?.id ?? null;
   const identifier = resolveRateLimitIdentifier({
-    userId: session?.user?.id ?? null,
+    userId,
     ip: request.headers.get('x-forwarded-for'),
   });
   const { success } = await apiRateLimit.limit(identifier);
@@ -40,7 +47,7 @@ export async function POST(
   }
 
   try {
-    const slug = await chatService.enableSharing(sessionId);
+    const slug = await chatService.enableSharing(sessionId, userId);
     logger.info('chat_session.shared', { sessionId });
     return NextResponse.json({ shareSlug: slug, shareUrl: `/share/${slug}` });
   } catch (err) {

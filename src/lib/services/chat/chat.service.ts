@@ -34,11 +34,15 @@ export class ChatService {
     return this.sessionRepository.create(siteId, userId);
   }
 
-  async getSession(sessionId: string): Promise<ChatSessionWithHistory> {
+  async getSession(
+    sessionId: string,
+    requestingUserId?: string | null,
+  ): Promise<ChatSessionWithHistory> {
     const session = await this.sessionRepository.findWithHistory(sessionId);
     if (!session) {
       throw new ChatError('SESSION_NOT_FOUND', `No chat session found for id "${sessionId}".`);
     }
+    this.assertOwnership(session, requestingUserId);
     return session;
   }
 
@@ -46,11 +50,30 @@ export class ChatService {
     return this.sessionRepository.findByUser(userId);
   }
 
-  async enableSharing(sessionId: string): Promise<string> {
-    // Confirms the session actually exists first, so callers get a clean
+  async enableSharing(sessionId: string, requestingUserId?: string | null): Promise<string> {
+    // Confirms the session actually exists (and is owned by this
+    // requester, if it has an owner) first, so callers get a clean
     // SESSION_NOT_FOUND instead of a confusing downstream Prisma error.
-    await this.getSession(sessionId);
+    await this.getSession(sessionId, requestingUserId);
     return this.sessionRepository.enableSharing(sessionId);
+  }
+
+  /**
+   * A session created while signed in belongs to that user. Anyone else —
+   * including a *different* signed-in user who merely learned the session
+   * id — gets the same SESSION_NOT_FOUND a genuinely missing session would
+   * produce, rather than a 403 that would confirm the session exists.
+   *
+   * Guest sessions (no userId) have no owner to check against, so they
+   * stay reachable by anyone who knows the id. That's an intentional,
+   * documented trade-off (see docs/security-checklist.md) — guest mode has
+   * no identity to check ownership against in the first place — not an
+   * oversight left over from tightening this for signed-in users.
+   */
+  private assertOwnership(session: ChatSessionWithHistory, requestingUserId?: string | null): void {
+    if (session.userId && session.userId !== requestingUserId) {
+      throw new ChatError('SESSION_NOT_FOUND', `No chat session found for id "${session.id}".`);
+    }
   }
 
   async getSharedSession(slug: string): Promise<ChatSessionWithHistory> {
@@ -61,7 +84,11 @@ export class ChatService {
     return session;
   }
 
-  async *ask(sessionId: string, question: string): AsyncGenerator<string> {
+  async *ask(
+    sessionId: string,
+    question: string,
+    requestingUserId?: string | null,
+  ): AsyncGenerator<string> {
     if (question.length > ChatService.MAX_QUESTION_LENGTH) {
       throw new ChatError(
         'INVALID_INPUT',
@@ -73,6 +100,7 @@ export class ChatService {
     if (!session) {
       throw new ChatError('SESSION_NOT_FOUND', `No chat session found for id "${sessionId}".`);
     }
+    this.assertOwnership(session, requestingUserId);
 
     const systemInstruction = buildSystemInstruction(session.site);
     const history: ChatTurn[] = session.messages.map((message) => ({

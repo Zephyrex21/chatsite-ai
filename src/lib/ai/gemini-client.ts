@@ -4,13 +4,18 @@ import { AiError, type AiClient, type StreamAnswerParams } from './types';
 /**
  * Model choice, explained: the Gemini 3.x family has iterated fast (several
  * preview models shipped and were deprecated within weeks of each other).
- * Gemini 2.5 Flash is the proven, stable choice for the primary call, with
- * Gemini 3.5 Flash (GA, stronger) as a fallback on failure. Swapping either
- * is a one-line change here — nothing else in the codebase references model
- * names directly.
+ * Gemini 3.5 Flash is now the GA, most-capable Flash model, so it's the
+ * primary call; Gemini 2.5 Flash — older, but proven stable over a long GA
+ * window — is the fallback if the primary is ever unavailable. (Gemini 3.6
+ * Flash has since reached GA too, cheaper than 3.5 Flash, but it's only
+ * been out a few weeks as of this writing — not worth taking on as the
+ * fallback path yet given how quickly this family has churned; worth
+ * revisiting once it's had more time in production elsewhere.) Swapping
+ * either is a one-line change here — nothing else in the codebase
+ * references model names directly.
  */
-const PRIMARY_MODEL = 'gemini-2.5-flash';
-const FALLBACK_MODEL = 'gemini-3.5-flash';
+const PRIMARY_MODEL = 'gemini-3.5-flash';
+const FALLBACK_MODEL = 'gemini-2.5-flash';
 
 type GeminiContent = { role: 'user' | 'model'; parts: [{ text: string }] };
 

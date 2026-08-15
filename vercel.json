@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/purge-expired-sites",
+      "schedule": "0 4 * * *"
+    }
+  ]
+}

@@ -187,6 +187,14 @@ either configured — but worth setting up to see them in action:
 2. **Admin dashboard** — set `ADMIN_EMAIL` in `.env.local` to whatever
    email you sign in with (GitHub/Google). Visit `/admin` while signed in
    with that email to see usage stats; any other account gets a 403.
+3. **Scheduled cache cleanup** — set `CRON_SECRET` in both `.env.local`
+   and your Vercel project's env vars to any random string (e.g.
+   `openssl rand -hex 32`). Vercel Cron reads `vercel.json` and calls
+   `GET /api/cron/purge-expired-sites` daily, sending
+   `Authorization: Bearer $CRON_SECRET` automatically — the route checks
+   that header itself, so no other setup is needed once the env var is
+   set. Locally, it's safe to leave unset: the route just returns a 401
+   for any caller, since there's no cron trigger in `npm run dev`.
 
 ### Running tests
 
@@ -196,7 +204,7 @@ npm run test:watch        # watch mode while developing
 npm run test:coverage     # run with coverage report (output in /coverage)
 ```
 
-Current coverage: 96%+ statements across the tested layers — 48 tests
+Current coverage: 98%+ statements across the tested layers — 101 tests
 total. Three categories of code are deliberately excluded from the
 coverage threshold rather than faked, all thin wrappers around an
 external service where a real manual check is more honest than a mocked
@@ -490,6 +498,7 @@ src/
       chat/sessions/route.ts                    → GET, per-user session history (requires auth)
       share/[slug]/route.ts                     → GET, public fetch of a shared conversation
       admin/stats/route.ts                      → GET, usage stats (ADMIN_EMAIL-gated)
+      cron/purge-expired-sites/route.ts         → GET, CRON_SECRET-gated, deletes expired ScrapedSite rows
       auth/[...nextauth]/route.ts               → Auth.js catch-all route
   instrumentation.ts             → loads the right Sentry config per runtime
   instrumentation-client.ts      → client-side Sentry init
@@ -503,6 +512,7 @@ src/
       chat/                    → ChatService, shared types
     repositories/               → database access (Prisma), isolated behind interfaces
     ai/                         → GeminiClient, prompt builder, shared types
+    markdown/                   → dependency-free markdown-lite parser for assistant messages
     rate-limit/                 → identifier.ts (pure, tested) + client.ts (Upstash instances)
     validation/                 → input validation (e.g. SSRF-safe URL checks)
     logger.ts                    → structured JSON logging, forwards errors to Sentry
@@ -512,7 +522,7 @@ src/
     next-auth.d.ts               → module augmentation for session.user.id
   components/
     ui/                          → Button, Card, TextInput, Skeleton, ThemeToggle
-    chat/                        → ChatBubble, ChatComposer, SitePreviewCard
+    chat/                        → ChatBubble, Markdown, ChatComposer, SitePreviewCard
     layout/                      → Header, SessionSidebar
 tests/
   unit/                         → Vitest, fast, no external calls

@@ -351,4 +351,84 @@ describe('ChatService', () => {
       code: 'SESSION_NOT_FOUND',
     });
   });
+
+  describe('session ownership', () => {
+    it('getSession throws SESSION_NOT_FOUND for a different signed-in user than the owner', async () => {
+      const ai = new FakeAiClient(['ok']);
+      const repo = new FakeChatSessionRepository();
+      const service = new ChatService(ai, repo);
+      const session = await service.createSession('site-1', 'user-a');
+
+      await expect(service.getSession(session.id, 'user-b')).rejects.toMatchObject({
+        code: 'SESSION_NOT_FOUND',
+      });
+    });
+
+    it('getSession succeeds for the owning user', async () => {
+      const ai = new FakeAiClient(['ok']);
+      const repo = new FakeChatSessionRepository();
+      const service = new ChatService(ai, repo);
+      const session = await service.createSession('site-1', 'user-a');
+
+      await expect(service.getSession(session.id, 'user-a')).resolves.toMatchObject({
+        id: session.id,
+      });
+    });
+
+    it('getSession succeeds for a guest (unowned) session regardless of requester', async () => {
+      const ai = new FakeAiClient(['ok']);
+      const repo = new FakeChatSessionRepository();
+      const service = new ChatService(ai, repo);
+      const session = await service.createSession('site-1');
+
+      await expect(service.getSession(session.id, 'anyone')).resolves.toMatchObject({
+        id: session.id,
+      });
+      await expect(service.getSession(session.id, null)).resolves.toMatchObject({
+        id: session.id,
+      });
+    });
+
+    it('ask throws SESSION_NOT_FOUND for a non-owner and never calls the AI client', async () => {
+      const ai = new FakeAiClient(['should not be reached']);
+      const repo = new FakeChatSessionRepository();
+      const service = new ChatService(ai, repo);
+      const session = await service.createSession('site-1', 'user-a');
+
+      await expect(service.ask(session.id, 'question', 'user-b').next()).rejects.toMatchObject({
+        code: 'SESSION_NOT_FOUND',
+      });
+      expect(ai.receivedParams).toHaveLength(0);
+    });
+
+    it('ask succeeds for the owning user', async () => {
+      const ai = new FakeAiClient(['answer']);
+      const repo = new FakeChatSessionRepository();
+      const service = new ChatService(ai, repo);
+      const session = await service.createSession('site-1', 'user-a');
+
+      const answer = await collect(service.ask(session.id, 'question', 'user-a'));
+      expect(answer).toBe('answer');
+    });
+
+    it('enableSharing throws SESSION_NOT_FOUND for a non-owner', async () => {
+      const ai = new FakeAiClient(['ok']);
+      const repo = new FakeChatSessionRepository();
+      const service = new ChatService(ai, repo);
+      const session = await service.createSession('site-1', 'user-a');
+
+      await expect(service.enableSharing(session.id, 'user-b')).rejects.toMatchObject({
+        code: 'SESSION_NOT_FOUND',
+      });
+    });
+
+    it('enableSharing succeeds for a guest session with no requester', async () => {
+      const ai = new FakeAiClient(['ok']);
+      const repo = new FakeChatSessionRepository();
+      const service = new ChatService(ai, repo);
+      const session = await service.createSession('site-1');
+
+      await expect(service.enableSharing(session.id)).resolves.toEqual(expect.any(String));
+    });
+  });
 });

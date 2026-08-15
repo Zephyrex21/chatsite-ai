@@ -72,16 +72,17 @@ or `apiRateLimit` (cheaper reads/writes).
 been missed — `GET /api/chat/session/[sessionId]` and
 `POST /api/chat/session/[sessionId]/share`. Both now call `apiRateLimit`.
 
-| Endpoint                            | Limiter                | Why                                                                                                                                                      |
-| ----------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /api/scrape`                  | expensive (10/min)     | costs a Firecrawl credit                                                                                                                                 |
-| `POST /api/chat/session`            | expensive (10/min)     | may trigger a scrape                                                                                                                                     |
-| `POST /api/chat`                    | expensive (10/min)     | costs a Gemini call                                                                                                                                      |
-| `GET /api/chat/session/[id]`        | api (60/min)           | read, but still a DB query                                                                                                                               |
-| `POST /api/chat/session/[id]/share` | api (60/min)           | write, but cheap                                                                                                                                         |
-| `GET /api/chat/sessions`            | api (60/min)           | read                                                                                                                                                     |
-| `GET /api/share/[slug]`             | api (60/min)           | public, no auth required                                                                                                                                 |
-| `/api/auth/[...nextauth]`           | _(not custom-limited)_ | Auth.js's own routes; OAuth flows have their own provider-side abuse protections, and rate-limiting the sign-in redirect itself is not standard practice |
+| Endpoint                            | Limiter                | Why                                                                                                                                                                                                          |
+| ----------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST /api/scrape`                  | expensive (10/min)     | costs a Firecrawl credit                                                                                                                                                                                     |
+| `POST /api/chat/session`            | expensive (10/min)     | may trigger a scrape                                                                                                                                                                                         |
+| `POST /api/chat`                    | expensive (10/min)     | costs a Gemini call                                                                                                                                                                                          |
+| `GET /api/chat/session/[id]`        | api (60/min)           | read, but still a DB query                                                                                                                                                                                   |
+| `POST /api/chat/session/[id]/share` | api (60/min)           | write, but cheap                                                                                                                                                                                             |
+| `GET /api/chat/sessions`            | api (60/min)           | read                                                                                                                                                                                                         |
+| `GET /api/share/[slug]`             | api (60/min)           | public, no auth required                                                                                                                                                                                     |
+| `/api/auth/[...nextauth]`           | _(not custom-limited)_ | Auth.js's own routes; OAuth flows have their own provider-side abuse protections, and rate-limiting the sign-in redirect itself is not standard practice                                                     |
+| `GET /api/cron/purge-expired-sites` | _(not custom-limited)_ | Added Phase 9. Not reachable without the `CRON_SECRET` bearer header — an unauthorized request gets a 401 before touching the database, so there's no meaningful abuse surface for a rate limiter to protect |
 
 ---
 
@@ -203,3 +204,50 @@ the future, this conclusion should be revisited.
 - **Share-link expiration or an "unshare" endpoint** — noted in
   ADR-0001 under the Phase 6 sharing decision; a reasonable follow-up
   once there's an actual abuse pattern to design against.
+
+---
+
+## ✅ Phase 9 polish pass
+
+A follow-up audit after Phase 8 found five items worth closing out. All
+five are done as of this pass.
+
+**Security headers.** `next.config.ts` had no `headers()` at all — no
+CSP, HSTS, X-Frame-Options, Referrer-Policy, or Permissions-Policy. Added
+all five (see `next.config.ts`). The CSP allows `'unsafe-inline'` for
+`script-src`/`style-src` — a real, documented trade-off (see the comment
+above `CSP` in `next.config.ts`) rather than an omission: a properly
+nonce-based CSP needs a `middleware.ts` that generates a per-request
+nonce and threads it through Next's own inline script/style injection,
+which is a bigger change than this pass. Everything else in the policy
+(`frame-ancestors 'none'`, `object-src 'none'`, an explicit `connect-src`
+allowlist instead of `*`) still meaningfully narrows the attack surface.
+
+**Session ownership.** Previously, anyone who learned a chat `sessionId`
+could read _and post messages into_ someone else's session, signed-in or
+not — the share route's old comment explicitly reasoned this was "the
+same trust boundary the rest of the app already uses." That's still true
+for **guest** sessions (no signed-in owner exists to check against — an
+intentional, unchanged trade-off). But a session created while signed in
+now has an enforced owner: `ChatService` rejects `getSession()`, `ask()`,
+and `enableSharing()` calls from a different user with the same
+`SESSION_NOT_FOUND` a genuinely missing session produces (never a `403`,
+which would confirm the session's existence to an attacker). See
+`ChatService.assertOwnership()` and the ownership test suite in
+`tests/unit/chat-service.test.ts`.
+
+**Cache purging.** `ScrapedSite` rows past their TTL were already treated
+as a cache miss by `findFreshByUrl()`, but nothing ever deleted them —
+the table grew unbounded. Added `ScrapedSiteRepository.deleteExpired()`
+plus a Vercel Cron job (`GET /api/cron/purge-expired-sites`, scheduled
+daily in `vercel.json`), gated by a `CRON_SECRET` shared-secret header
+rather than a signed-in admin session, since Vercel Cron's own requests
+aren't a browser session to begin with.
+
+**Not a security item, included for completeness:** the Gemini model
+priority was swapped (3.5 Flash is now primary, 2.5 Flash the fallback)
+to reflect the current GA lineup, and assistant chat messages now render
+through a small dependency-free markdown-lite parser
+(`src/lib/markdown/parse.ts`) instead of as raw escaped text — see that
+file's own header comment for why a parser was written in-house instead
+of adding `react-markdown`/`remark` as dependencies.

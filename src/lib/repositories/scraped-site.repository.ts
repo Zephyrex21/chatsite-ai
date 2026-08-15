@@ -18,6 +18,7 @@ export interface UpsertScrapedSiteInput {
 export interface ScrapedSiteRepository {
   findFreshByUrl(url: string): Promise<ScrapedSite | null>;
   upsert(input: UpsertScrapedSiteInput): Promise<ScrapedSite>;
+  deleteExpired(): Promise<number>;
 }
 
 export class PrismaScrapedSiteRepository implements ScrapedSiteRepository {
@@ -36,5 +37,21 @@ export class PrismaScrapedSiteRepository implements ScrapedSiteRepository {
       create: { ...input, expiresAt },
       update: { ...input, expiresAt, scrapedAt: new Date() },
     });
+  }
+
+  /**
+   * Deletes rows whose cache TTL has already passed. findFreshByUrl()
+   * above already treats an expired row as a cache miss, so this doesn't
+   * change any *behavior* — it reclaims storage for rows that were
+   * already functionally dead, since nothing was ever deleting them.
+   * Called on a schedule by `GET /api/cron/purge-expired-sites` (see
+   * vercel.json). Returns the number of rows removed, purely for
+   * logging/observability.
+   */
+  async deleteExpired(): Promise<number> {
+    const { count } = await prisma.scrapedSite.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    });
+    return count;
   }
 }

@@ -20,8 +20,9 @@ export async function GET(
   const { sessionId } = await params;
 
   const session = await auth();
+  const userId = session?.user?.id ?? null;
   const identifier = resolveRateLimitIdentifier({
-    userId: session?.user?.id ?? null,
+    userId,
     ip: request.headers.get('x-forwarded-for'),
   });
   const { success } = await apiRateLimit.limit(identifier);
@@ -31,7 +32,7 @@ export async function GET(
   }
 
   try {
-    const chatSession = await chatService.getSession(sessionId);
+    const chatSession = await chatService.getSession(sessionId, userId);
     return NextResponse.json({
       sessionId: chatSession.id,
       site: { url: chatSession.site.url, title: chatSession.site.title },

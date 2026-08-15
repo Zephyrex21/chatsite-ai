@@ -204,7 +204,7 @@ npm run test:watch        # watch mode while developing
 npm run test:coverage     # run with coverage report (output in /coverage)
 ```
 
-Current coverage: 98%+ statements across the tested layers — 101 tests
+Current coverage: 98%+ statements across the tested layers — 129 tests
 total. Three categories of code are deliberately excluded from the
 coverage threshold rather than faked, all thin wrappers around an
 external service where a real manual check is more honest than a mocked
@@ -476,10 +476,13 @@ actual working link is worth more than any amount of description.
 ```
 src/
   app/
+    (marketing)/
+      layout.tsx                  → Navbar + Footer shell, no chat-app sidebar
+      page.tsx                    → homepage: hero, recent chats (signed-in), features
+      error.tsx                   → on-brand error boundary, reports to Sentry
     (main)/
       layout.tsx                  → shared shell: header + sidebar, both pages render inside
       error.tsx                   → on-brand error boundary, reports to Sentry
-      page.tsx                    → landing page: URL input hero
       chat/[sessionId]/page.tsx    → chat screen: history load, streaming, share/export
       share/[slug]/page.tsx        → public read-only view of a shared conversation
       admin/page.tsx                → usage-stats dashboard (ADMIN_EMAIL-gated)
@@ -513,6 +516,7 @@ src/
     repositories/               → database access (Prisma), isolated behind interfaces
     ai/                         → GeminiClient, prompt builder, shared types
     markdown/                   → dependency-free markdown-lite parser for assistant messages
+    motion.ts                   → framer-motion variants, reduced-motion-aware
     rate-limit/                 → identifier.ts (pure, tested) + client.ts (Upstash instances)
     validation/                 → input validation (e.g. SSRF-safe URL checks)
     logger.ts                    → structured JSON logging, forwards errors to Sentry
@@ -522,6 +526,7 @@ src/
     next-auth.d.ts               → module augmentation for session.user.id
   components/
     ui/                          → Button, Card, TextInput, Skeleton, ThemeToggle
+    marketing/                   → Navbar, Hero, HeroIllustration, RecentChats, FeaturesSection, Footer
     chat/                        → ChatBubble, Markdown, ChatComposer, SitePreviewCard
     layout/                      → Header, SessionSidebar
 tests/

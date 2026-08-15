@@ -43,9 +43,17 @@ export class PrismaChatSessionRepository implements ChatSessionRepository {
   }
 
   async addMessage(sessionId: string, role: 'user' | 'assistant', content: string): Promise<void> {
-    await prisma.message.create({
-      data: { sessionId, role, content },
-    });
+    // A bare `message.create()` never touches the parent ChatSession row,
+    // so its `@updatedAt` (which findByUser's "most recent first" sort
+    // relies on) would otherwise only reflect creation time — an old
+    // session with hours of ongoing activity would never re-sort above a
+    // session someone merely just started. The transaction keeps both
+    // writes atomic so a failure can't leave the message saved but the
+    // session's recency stale.
+    await prisma.$transaction([
+      prisma.message.create({ data: { sessionId, role, content } }),
+      prisma.chatSession.update({ where: { id: sessionId }, data: { updatedAt: new Date() } }),
+    ]);
   }
 
   async enableSharing(sessionId: string): Promise<string> {

@@ -111,6 +111,10 @@ export function Hero() {
               </Button>
             </form>
           </Card>
+
+          <p className="mt-4 text-sm text-(--clay-text-muted)">
+            No sign-up required to try it · Sign in to keep your chat history
+          </p>
         </motion.div>
 
         <motion.div

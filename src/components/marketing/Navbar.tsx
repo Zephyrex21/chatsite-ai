@@ -1,16 +1,33 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { LogOut } from 'lucide-react';
+import { cx } from '@/lib/cx';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Button } from '@/components/ui/Button';
 
 export function Navbar() {
   const { data: session, status } = useSession();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
-    <header className="relative z-20 flex w-full items-center justify-between px-6 py-6 sm:px-10">
+    <header
+      className={cx(
+        'sticky top-0 z-20 flex w-full items-center justify-between px-6 py-5 transition-all duration-300 sm:px-10',
+        scrolled
+          ? 'border-b border-(--clay-text-muted)/10 bg-(--clay-bg)/80 shadow-[var(--clay-shadow-out-sm)] backdrop-blur-md'
+          : 'border-b border-transparent bg-transparent',
+      )}
+    >
       <Link
         href="/"
         className="font-display text-xl font-semibold tracking-tight text-(--clay-text)"
@@ -19,6 +36,9 @@ export function Navbar() {
       </Link>
 
       <nav className="hidden items-center gap-8 text-sm font-medium text-(--clay-text-muted) sm:flex">
+        <a href="#how-it-works" className="transition-colors hover:text-(--clay-text)">
+          How it works
+        </a>
         <a href="#features" className="transition-colors hover:text-(--clay-text)">
           Features
         </a>
@@ -35,7 +55,7 @@ export function Navbar() {
       <div className="flex items-center gap-3">
         {status === 'authenticated' ? (
           <>
-            <span className="hidden text-sm text-(--clay-text-muted) sm:inline">
+            <span className="hidden max-w-[10rem] truncate text-sm text-(--clay-text-muted) sm:inline">
               {session.user?.name ?? session.user?.email}
             </span>
             <Button

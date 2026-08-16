@@ -146,9 +146,10 @@ export function HeroIllustration() {
         />
       </motion.g>
 
-      {/* Dotted path from the page to the conversation */}
+      {/* Dotted path from the page to the conversation — ends just short
+          of the bubble's edge, not piercing through its middle */}
       <motion.path
-        d="M 330 170 C 380 170, 380 340, 430 340"
+        d="M 330 170 C 380 170, 380 340, 355 340"
         fill="none"
         stroke="var(--clay-accent)"
         strokeWidth="2.5"
@@ -160,7 +161,10 @@ export function HeroIllustration() {
         transition={{ duration: reduced ? 0.2 : 1.2, delay: reduced ? 0 : 0.5, ease: 'easeOut' }}
       />
 
-      {/* Floating chat conversation — the answer */}
+      {/* Floating chat conversation — the answer. Starts at x=360, 20px
+          clear of the browser window's right edge (x=340) — it previously
+          started at x=330, bleeding 10px into the browser card instead of
+          floating beside it. */}
       <motion.g
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -175,12 +179,12 @@ export function HeroIllustration() {
           transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
         >
           {/* User question bubble */}
-          <rect x="330" y="300" width="150" height="44" rx="18" fill="var(--clay-primary)" />
-          <rect x="352" y="316" width="90" height="12" rx="6" fill="white" opacity="0.85" />
+          <rect x="360" y="300" width="150" height="44" rx="18" fill="var(--clay-primary)" />
+          <rect x="382" y="316" width="90" height="12" rx="6" fill="white" opacity="0.85" />
 
           {/* Assistant answer bubble */}
           <rect
-            x="360"
+            x="390"
             y="356"
             width="160"
             height="64"
@@ -190,7 +194,7 @@ export function HeroIllustration() {
             strokeOpacity="0.06"
           />
           <rect
-            x="380"
+            x="410"
             y="372"
             width="120"
             height="10"
@@ -199,7 +203,7 @@ export function HeroIllustration() {
             opacity="0.16"
           />
           <rect
-            x="380"
+            x="410"
             y="390"
             width="90"
             height="10"
@@ -208,7 +212,7 @@ export function HeroIllustration() {
             opacity="0.1"
           />
           <rect
-            x="380"
+            x="410"
             y="406"
             width="60"
             height="10"

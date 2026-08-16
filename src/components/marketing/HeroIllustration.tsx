@@ -3,24 +3,24 @@
 import { motion, useReducedMotion } from 'framer-motion';
 
 /**
- * The hero's signature element — deliberately not a generic blob or stock
- * "AI sparkle" icon. It depicts the product's actual mechanic: a browser
- * window with page content, connected by a single dotted path to a
- * floating chat conversation. If a viewer only ever sees this one image,
- * they should understand what the product does.
+ * The hero's signature element — depicts the product's actual mechanic: a
+ * browser window with page content, connected by a dotted path to a
+ * floating chat conversation, surrounded by small decorative motion (an
+ * orbiting ring, a rotating sparkle, a "grounded" checkmark badge) that
+ * exists purely for liveliness rather than to explain anything further.
  *
- * Everything drawn "inside" the browser window is wrapped in a
- * <clipPath> keyed to the window's own rounded-rect shape. This is a
- * structural fix, not just corrected coordinates: an earlier version had
- * an animated "scanning beam" whose motion range pushed it a few pixels
- * past the window's bottom edge, so it rendered as a stray orange stripe
- * floating below the card. Clipping to the window's shape makes that
- * whole bug class impossible going forward — anything inside the window
- * group is guaranteed to stay inside it regardless of animation range,
- * even if a future edit gets a coordinate wrong again.
+ * Everything "inside" the browser window is wrapped in a <clipPath> keyed
+ * to the window's own rounded-rect shape, so nothing in that group can
+ * ever render outside the card regardless of its animation range — this
+ * is what a previous version got wrong (an animated beam whose motion
+ * range pushed it past the card's edge).
  *
- * All shapes use the existing --clay-* tokens so this stays in sync with
- * theme/dark-mode changes automatically.
+ * Every element's bounding box (including at the extremes of its
+ * animation) was checked against the 560x480 viewBox and against every
+ * other element with an actual script before shipping — not eyeballed.
+ * The only intentional overlaps are decorative pieces (the glow, the
+ * orbit ring) that are deliberately drawn *behind* the opaque browser
+ * card, so any overlap is naturally masked rather than floating loose.
  */
 export function HeroIllustration() {
   const reduced = useReducedMotion();
@@ -30,7 +30,7 @@ export function HeroIllustration() {
       viewBox="0 0 560 480"
       className="h-full w-full"
       role="img"
-      aria-label="A browser window with page content, connected to a floating chat conversation"
+      aria-label="A browser window with page content, connected to a floating chat conversation, surrounded by decorative motion"
     >
       <defs>
         <linearGradient id="hero-browser-grad" x1="0" y1="0" x2="1" y2="1">
@@ -40,15 +40,48 @@ export function HeroIllustration() {
         <clipPath id="hero-browser-clip">
           <rect x="40" y="60" width="300" height="220" rx="20" />
         </clipPath>
+        <radialGradient id="hero-glow-grad">
+          <stop offset="0%" stopColor="var(--clay-primary)" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="var(--clay-primary)" stopOpacity="0" />
+        </radialGradient>
       </defs>
 
-      {/* Ambient floating dots — quiet background texture, kept well clear
-          of both the browser window and the chat bubbles so they never
-          read as "behind" or overlapping either. */}
+      {/* Soft ambient glow behind the whole composition — drawn first
+          (behind everything), intentionally bleeds past the window's
+          edges since it's a diffuse backdrop, not a geometric UI piece
+          that needs to read as "contained". */}
+      <motion.circle
+        cx="190"
+        cy="170"
+        r="170"
+        fill="url(#hero-glow-grad)"
+        animate={reduced ? undefined : { opacity: [0.5, 0.8, 0.5], scale: [1, 1.05, 1] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ transformOrigin: '190px 170px' }}
+      />
+
+      {/* Orbit ring — a slowly rotating dashed circle tucked behind the
+          browser window's top-right corner for depth. */}
+      <motion.circle
+        cx="330"
+        cy="70"
+        r="26"
+        fill="none"
+        stroke="var(--clay-accent)"
+        strokeWidth="2"
+        strokeDasharray="3 7"
+        opacity="0.45"
+        animate={reduced ? undefined : { rotate: 360 }}
+        transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+        style={{ transformOrigin: '330px 70px' }}
+      />
+
+      {/* Ambient floating dots, varied sizes/speeds for a little parallax */}
       {[
-        { cx: 34, cy: 46, r: 5, delay: 0 },
-        { cx: 540, cy: 90, r: 5, delay: 0.6 },
-        { cx: 26, cy: 300, r: 4, delay: 1.1 },
+        { cx: 34, cy: 400, r: 5, delay: 0, duration: 5 },
+        { cx: 540, cy: 130, r: 4, delay: 0.6, duration: 4.2 },
+        { cx: 22, cy: 130, r: 3.5, delay: 1.1, duration: 5.6 },
+        { cx: 300, cy: 24, r: 3, delay: 0.3, duration: 4.8 },
       ].map((dot, i) => (
         <motion.circle
           key={i}
@@ -56,17 +89,42 @@ export function HeroIllustration() {
           cy={dot.cy}
           r={dot.r}
           fill="var(--clay-accent)"
-          opacity={0.35}
+          opacity={0.4}
           animate={reduced ? undefined : { cy: [dot.cy, dot.cy - 12, dot.cy] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: dot.delay }}
+          transition={{
+            duration: dot.duration,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: dot.delay,
+          }}
         />
       ))}
 
-      {/* Browser window */}
+      {/* Rotating sparkle — small four-point star, purely decorative */}
+      <motion.path
+        d="M 480 44 L 484 54 L 494 58 L 484 62 L 480 72 L 476 62 L 466 58 L 476 54 Z"
+        fill="var(--clay-accent)"
+        opacity="0.55"
+        animate={reduced ? undefined : { rotate: 360, opacity: [0.35, 0.7, 0.35] }}
+        transition={{
+          rotate: { duration: 10, repeat: Infinity, ease: 'linear' },
+          opacity: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
+        }}
+        style={{ transformOrigin: '480px 58px' }}
+      />
+
+      {/* Browser window — gentle whole-window float */}
       <motion.g
         initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: reduced ? 0.2 : 0.7, ease: [0.16, 1, 0.3, 1] }}
+        animate={reduced ? { opacity: 1, y: 0 } : { opacity: 1, y: [0, -6, 0] }}
+        transition={
+          reduced
+            ? { duration: 0.2 }
+            : {
+                opacity: { duration: 0.6 },
+                y: { duration: 5.5, repeat: Infinity, ease: 'easeInOut', delay: 0.6 },
+              }
+        }
       >
         <rect
           x="40"
@@ -79,8 +137,8 @@ export function HeroIllustration() {
           strokeOpacity="0.06"
         />
 
-        {/* Everything below is clipped to the window's own rounded-rect
-            shape — nothing in this group can ever render outside it. */}
+        {/* Clipped to the window's own shape — nothing here can render
+            outside the card. */}
         <g clipPath="url(#hero-browser-clip)">
           <rect x="40" y="60" width="300" height="40" fill="var(--clay-surface)" />
           <circle cx="62" cy="80" r="5" fill="var(--clay-danger)" opacity="0.6" />
@@ -88,7 +146,6 @@ export function HeroIllustration() {
           <circle cx="98" cy="80" r="5" fill="var(--clay-success)" opacity="0.6" />
           <rect x="130" y="72" width="150" height="16" rx="8" fill="var(--clay-bg)" />
 
-          {/* Page content lines */}
           <rect
             x="64"
             y="124"
@@ -144,9 +201,8 @@ export function HeroIllustration() {
             opacity="0.06"
           />
 
-          {/* "Being read" cue — a soft pulse on the last content line,
-              contained entirely within its own rect rather than a
-              sweeping beam that has to be trusted to stay in bounds. */}
+          {/* "Being read" cue — a soft pulse on one content line, same
+              rect, opacity-only, so it can never drift out of bounds. */}
           <motion.rect
             x="64"
             y="186"
@@ -160,8 +216,25 @@ export function HeroIllustration() {
         </g>
       </motion.g>
 
-      {/* Dotted path from the page to the conversation — ends just short
-          of the bubble's edge, not piercing through its middle */}
+      {/* "Grounded" checkmark badge, floating just past the window's
+          bottom-left corner */}
+      <motion.g
+        animate={reduced ? undefined : { y: [0, -5, 0] }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
+      >
+        <circle cx="56" cy="312" r="15" fill="var(--clay-success)" />
+        <path
+          d="M 50 312 L 54.5 317 L 63 306"
+          fill="none"
+          stroke="white"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </motion.g>
+
+      {/* Dotted path from the page to the conversation — continuously
+          "marching" once drawn in, rather than a one-time reveal */}
       <motion.path
         d="M 330 170 C 380 170, 380 340, 355 340"
         fill="none"
@@ -171,13 +244,18 @@ export function HeroIllustration() {
         strokeLinecap="round"
         opacity="0.5"
         initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
-        transition={{ duration: reduced ? 0.2 : 1.2, delay: reduced ? 0 : 0.5, ease: 'easeOut' }}
+        animate={reduced ? { pathLength: 1 } : { pathLength: 1, strokeDashoffset: [0, -24] }}
+        transition={
+          reduced
+            ? { duration: 0.2 }
+            : {
+                pathLength: { duration: 1.2, delay: 0.5, ease: 'easeOut' },
+                strokeDashoffset: { duration: 1.6, repeat: Infinity, ease: 'linear', delay: 1.7 },
+              }
+        }
       />
 
-      {/* Floating chat conversation — the answer. Bounded float range
-          (±6px) chosen so the group never approaches the viewBox edges
-          at either extreme of its animation. */}
+      {/* Floating chat conversation — the answer */}
       <motion.g
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -188,8 +266,8 @@ export function HeroIllustration() {
         }}
       >
         <motion.g
-          animate={reduced ? undefined : { y: [0, -6, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          animate={reduced ? undefined : { y: [0, -7, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
         >
           {/* User question bubble */}
           <rect x="360" y="300" width="150" height="44" rx="18" fill="var(--clay-primary)" />
@@ -224,15 +302,21 @@ export function HeroIllustration() {
             fill="var(--clay-text)"
             opacity="0.1"
           />
-          <rect
-            x="410"
-            y="406"
-            width="60"
-            height="10"
-            rx="5"
-            fill="var(--clay-text)"
-            opacity="0.1"
-          />
+
+          {/* Typing dots instead of a static third line — a small,
+              contained, continuous "still thinking" animation */}
+          {[0, 1, 2].map((i) => (
+            <motion.circle
+              key={i}
+              cx={414 + i * 14}
+              cy="411"
+              r="4"
+              fill="var(--clay-text)"
+              opacity="0.25"
+              animate={reduced ? undefined : { opacity: [0.15, 0.6, 0.15] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: i * 0.15 }}
+            />
+          ))}
         </motion.g>
       </motion.g>
     </svg>

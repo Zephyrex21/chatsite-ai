@@ -251,3 +251,21 @@ through a small dependency-free markdown-lite parser
 (`src/lib/markdown/parse.ts`) instead of as raw escaped text — see that
 file's own header comment for why a parser was written in-house instead
 of adding `react-markdown`/`remark` as dependencies.
+
+---
+
+## Phase 10 — cross-provider account linking
+
+`allowDangerousEmailAccountLinking: true` is set on both the GitHub and
+Google providers in `src/auth.config.ts`. Auth.js's default behavior
+refuses to attach a new OAuth provider to an existing account sharing
+its email — the "dangerous" naming is because that default exists to
+stop an unverified/spoofable email at one provider from being used to
+hijack an account created via another. That risk doesn't apply between
+GitHub and Google specifically: both only ever return emails they've
+themselves verified, so there's no unverified-email vector here to
+guard against. Without the flag, signing up via GitHub and later trying
+Google (or vice versa) with the same address always fails with
+`OAuthAccountNotLinked` — worse UX than the linking risk is real, for
+this specific pair of providers. Full reasoning is in the code comment
+above the providers array.

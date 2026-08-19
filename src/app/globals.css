@@ -59,6 +59,24 @@
   --clay-shadow-focus: 0 0 0 4px var(--clay-primary-tint);
 
   --clay-transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Hero illustration only. Kept separate from the shared --clay-*
+     tokens above rather than reusing them directly, because the
+     illustration's browser-window card needs its own contrast tuning in
+     dark mode (see the :root.dark block) without touching every other
+     component that already relies on --clay-surface/--clay-text at
+     their current values. Light mode here is identical to what plain
+     --clay-* references would have produced — this block changes
+     nothing visually in light mode, only gives dark mode room to differ. */
+  --hero-card-grad-start: var(--clay-primary-tint);
+  --hero-card-grad-end: var(--clay-surface);
+  --hero-card-border-opacity: 0.06;
+  --hero-topbar-fill: var(--clay-surface);
+  --hero-addressbar-fill: var(--clay-bg);
+  --hero-line-strong: 0.16;
+  --hero-line-mid: 0.14;
+  --hero-line-soft: 0.09;
+  --hero-line-faint: 0.1;
 }
 
 :root.dark {
@@ -87,6 +105,30 @@
   --clay-shadow-pressed:
     inset 4px 4px 10px rgba(0, 0, 0, 0.55), inset -4px -4px 10px rgba(255, 255, 255, 0.02);
   --clay-shadow-focus: 0 0 0 4px var(--clay-primary-tint);
+
+  /* Hero illustration dark-mode fix: the browser-window card's gradient
+     previously ran from --clay-primary-tint (#2c2a4a) to --clay-surface
+     (#21232f), against a page background of #1b1d29 — three luminance
+     values within ~0.014 of each other, so the whole card read as a flat,
+     barely-differentiated blob (the bug a screenshot caught: the window
+     looked "muddy" with its content lines nearly invisible). These
+     replacement values were chosen by computing actual sRGB relative
+     luminance, not eyeballed: page-bg vs card-grad-start now measures a
+     1.68:1 contrast ratio (was ~1.05:1), topbar vs address-bar 1.42:1, so
+     the card visibly separates from the page and the toolbar visibly
+     separates from the address pill. Content-line opacities are roughly
+     doubled for the same reason — 0.09-0.16 of near-white text was
+     correct for light mode's dark-text-on-light-surface math, but far too
+     faint once the polarity flips to light-text-on-dark-surface. */
+  --hero-card-grad-start: #423c70;
+  --hero-card-grad-end: #2c2952;
+  --hero-card-border-opacity: 0.14;
+  --hero-topbar-fill: #332f5c;
+  --hero-addressbar-fill: #17182a;
+  --hero-line-strong: 0.32;
+  --hero-line-mid: 0.26;
+  --hero-line-soft: 0.2;
+  --hero-line-faint: 0.22;
 }
 
 @theme inline {

@@ -34,8 +34,8 @@ export function HeroIllustration() {
     >
       <defs>
         <linearGradient id="hero-browser-grad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="var(--clay-primary-tint)" />
-          <stop offset="100%" stopColor="var(--clay-surface)" />
+          <stop offset="0%" stopColor="var(--hero-card-grad-start)" />
+          <stop offset="100%" stopColor="var(--hero-card-grad-end)" />
         </linearGradient>
         <clipPath id="hero-browser-clip">
           <rect x="40" y="60" width="300" height="220" rx="20" />
@@ -134,17 +134,17 @@ export function HeroIllustration() {
           rx="20"
           fill="url(#hero-browser-grad)"
           stroke="var(--clay-text)"
-          strokeOpacity="0.06"
+          strokeOpacity="var(--hero-card-border-opacity)"
         />
 
         {/* Clipped to the window's own shape — nothing here can render
             outside the card. */}
         <g clipPath="url(#hero-browser-clip)">
-          <rect x="40" y="60" width="300" height="40" fill="var(--clay-surface)" />
+          <rect x="40" y="60" width="300" height="40" fill="var(--hero-topbar-fill)" />
           <circle cx="62" cy="80" r="5" fill="var(--clay-danger)" opacity="0.6" />
           <circle cx="80" cy="80" r="5" fill="var(--clay-accent)" opacity="0.6" />
           <circle cx="98" cy="80" r="5" fill="var(--clay-success)" opacity="0.6" />
-          <rect x="130" y="72" width="150" height="16" rx="8" fill="var(--clay-bg)" />
+          <rect x="130" y="72" width="150" height="16" rx="8" fill="var(--hero-addressbar-fill)" />
 
           <rect
             x="64"
@@ -153,7 +153,7 @@ export function HeroIllustration() {
             height="14"
             rx="7"
             fill="var(--clay-text)"
-            opacity="0.14"
+            opacity="var(--hero-line-mid)"
           />
           <rect
             x="64"
@@ -162,7 +162,7 @@ export function HeroIllustration() {
             height="10"
             rx="5"
             fill="var(--clay-text)"
-            opacity="0.09"
+            opacity="var(--hero-line-soft)"
           />
           <rect
             x="64"
@@ -171,7 +171,7 @@ export function HeroIllustration() {
             height="10"
             rx="5"
             fill="var(--clay-text)"
-            opacity="0.09"
+            opacity="var(--hero-line-soft)"
           />
           <rect
             x="64"
@@ -180,7 +180,7 @@ export function HeroIllustration() {
             height="10"
             rx="5"
             fill="var(--clay-text)"
-            opacity="0.09"
+            opacity="var(--hero-line-soft)"
           />
           <rect
             x="64"
@@ -198,7 +198,7 @@ export function HeroIllustration() {
             height="34"
             rx="10"
             fill="var(--clay-text)"
-            opacity="0.06"
+            opacity="var(--hero-line-faint)"
           />
 
           {/* "Being read" cue — a soft pulse on one content line, same
@@ -280,9 +280,9 @@ export function HeroIllustration() {
             width="160"
             height="64"
             rx="18"
-            fill="var(--clay-surface)"
+            fill="url(#hero-browser-grad)"
             stroke="var(--clay-text)"
-            strokeOpacity="0.06"
+            strokeOpacity="var(--hero-card-border-opacity)"
           />
           <rect
             x="410"
@@ -291,7 +291,7 @@ export function HeroIllustration() {
             height="10"
             rx="5"
             fill="var(--clay-text)"
-            opacity="0.16"
+            opacity="var(--hero-line-strong)"
           />
           <rect
             x="410"
@@ -300,7 +300,7 @@ export function HeroIllustration() {
             height="10"
             rx="5"
             fill="var(--clay-text)"
-            opacity="0.1"
+            opacity="var(--hero-line-faint)"
           />
 
           {/* Typing dots instead of a static third line — a small,

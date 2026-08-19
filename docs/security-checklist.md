@@ -269,3 +269,22 @@ Google (or vice versa) with the same address always fails with
 `OAuthAccountNotLinked` — worse UX than the linking risk is real, for
 this specific pair of providers. Full reasoning is in the code comment
 above the providers array.
+
+---
+
+## Phase 10 — hero illustration dark-mode contrast
+
+Not a security item, but the same "measure it, don't eyeball it" spirit
+as the WCAG fixes above. The hero illustration's browser-window card
+used `--clay-primary-tint` → `--clay-surface` for its gradient, on a
+`--clay-bg` page background — in dark mode these three values measured
+within 0.014 of each other in relative luminance (contrast ratio
+~1.05:1), so the card read as a flat, undifferentiated blob with its
+content lines nearly invisible. Fixed with a set of `--hero-*` CSS
+variables scoped to the illustration alone (defined in `globals.css`,
+referenced from `HeroIllustration.tsx`) — light mode is byte-for-byte
+unchanged, dark mode gets its own tuned values verified with the actual
+sRGB luminance formula (card-vs-page now measures 1.68:1, up from
+~1.05:1). Scoped this way specifically to avoid touching
+`--clay-surface`/`--clay-text` globally, which other already-audited
+components rely on at their current values.

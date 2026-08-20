@@ -6,8 +6,10 @@ import { Share2, Download, Check } from 'lucide-react';
 import { SitePreviewCard } from '@/components/chat/SitePreviewCard';
 import { ChatBubble } from '@/components/chat/ChatBubble';
 import { ChatComposer } from '@/components/chat/ChatComposer';
+import { SuggestedQuestions } from '@/components/chat/SuggestedQuestions';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { withUserGeminiKeyHeader } from '@/lib/user-gemini-key';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -18,6 +20,7 @@ interface SessionData {
   sessionId: string;
   site: { url: string; title: string | null };
   messages: Message[];
+  suggestedQuestions: string[];
 }
 
 export default function ChatPage() {
@@ -74,7 +77,7 @@ export default function ChatPage() {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withUserGeminiKeyHeader({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ sessionId, question }),
       });
 
@@ -212,6 +215,14 @@ export default function ChatPage() {
           <p role="alert" className="text-center text-sm text-(--clay-danger)">
             {askError}
           </p>
+        ) : null}
+
+        {session && messages.length === 0 && session.suggestedQuestions.length > 0 ? (
+          <SuggestedQuestions
+            questions={session.suggestedQuestions}
+            onSelect={handleSend}
+            disabled={isAsking}
+          />
         ) : null}
 
         <div className="sticky bottom-4">

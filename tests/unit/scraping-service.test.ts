@@ -11,7 +11,11 @@ import type {
 } from '@/lib/repositories/scraped-site.repository';
 
 /** Minimal shape matching the fields ScrapingService actually reads off a ScrapedSite. */
-type FakeScrapedSite = UpsertScrapedSiteInput & { id: string; expiresAt: Date | null };
+type FakeScrapedSite = UpsertScrapedSiteInput & {
+  id: string;
+  expiresAt: Date | null;
+  suggestedQuestions: string[];
+};
 
 class FakeScraperProvider implements ScraperProvider {
   public calls: string[] = [];
@@ -38,6 +42,7 @@ class FakeScrapedSiteRepository implements ScrapedSiteRepository {
       ...input,
       id: `fake-id-${this.store.size}`,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      suggestedQuestions: [],
     };
     this.store.set(input.url, site);
     return site as unknown as Awaited<ReturnType<ScrapedSiteRepository['upsert']>>;
@@ -52,6 +57,15 @@ class FakeScrapedSiteRepository implements ScrapedSiteRepository {
       }
     }
     return count;
+  }
+
+  async setSuggestedQuestions(id: string, questions: string[]): Promise<void> {
+    for (const site of this.store.values()) {
+      if (site.id === id) {
+        site.suggestedQuestions = questions;
+        return;
+      }
+    }
   }
 
   /** Test helper: seed the cache directly, bypassing upsert(). */
@@ -115,6 +129,7 @@ describe('ScrapingService', () => {
       markdown: 'cached markdown',
       wordCount: 2,
       expiresAt: new Date(Date.now() + 60_000),
+      suggestedQuestions: ['What is this site about?'],
     });
     const service = new ScrapingService(provider, repository);
 
@@ -135,6 +150,7 @@ describe('ScrapingService', () => {
       markdown: 'stale markdown',
       wordCount: 2,
       expiresAt: new Date(Date.now() - 1000), // already expired
+      suggestedQuestions: [],
     });
     const service = new ScrapingService(provider, repository);
 
@@ -168,5 +184,34 @@ describe('ScrapingService', () => {
     // The provider should have been called with the normalized URL, not the
     // raw one with tracking params still attached.
     expect(provider.calls).toEqual(['https://example.com/']);
+  });
+
+  it('returns an empty suggestedQuestions array on a fresh scrape', async () => {
+    const provider = new FakeScraperProvider(sampleContent);
+    const repository = new FakeScrapedSiteRepository();
+    const service = new ScrapingService(provider, repository);
+
+    const result = await service.scrapeUrl('https://example.com');
+
+    expect(result.suggestedQuestions).toEqual([]);
+  });
+
+  it('returns cached suggestedQuestions on a cache hit', async () => {
+    const provider = new FakeScraperProvider(sampleContent);
+    const repository = new FakeScrapedSiteRepository();
+    repository.seed('https://example.com/', {
+      id: 'seeded-id-3',
+      url: 'https://example.com/',
+      title: 'Cached Title',
+      markdown: 'cached markdown',
+      wordCount: 2,
+      expiresAt: new Date(Date.now() + 60_000),
+      suggestedQuestions: ['What is this site about?', 'Who built it?'],
+    });
+    const service = new ScrapingService(provider, repository);
+
+    const result = await service.scrapeUrl('https://example.com');
+
+    expect(result.suggestedQuestions).toEqual(['What is this site about?', 'Who built it?']);
   });
 });

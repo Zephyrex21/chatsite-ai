@@ -42,3 +42,23 @@ function truncateForContext(markdown: string, maxChars: number = MAX_CONTEXT_CHA
   if (markdown.length <= maxChars) return markdown;
   return `${markdown.slice(0, maxChars)}\n\n[...content truncated for length...]`;
 }
+
+// A much smaller budget than the main grounding prompt — generating
+// starter questions only needs a general sense of the page, not its full
+// content, and keeping this call cheap matters since it fires on every
+// newly-scraped URL regardless of whether anyone ever clicks a suggestion.
+const SUGGESTION_CONTEXT_CHARS = 8_000;
+
+export function buildSuggestedQuestionsPrompt(site: GroundingSite): string {
+  const label = site.title ? `${site.title} (${site.url})` : site.url;
+
+  return [
+    'Based on the page content below, suggest exactly 4 short, natural questions a curious reader might actually ask about this page.',
+    '',
+    'Rules: each question under 12 words. Grounded in what the page actually covers — no generic filler like "What is this page about?" unless the page genuinely has no more specific angle. Respond with ONLY a JSON array of 4 strings, nothing else — no markdown code fences, no explanation, no trailing text.',
+    '',
+    `--- PAGE: ${label} ---`,
+    truncateForContext(site.markdown, SUGGESTION_CONTEXT_CHARS),
+    '--- END PAGE CONTENT ---',
+  ].join('\n');
+}

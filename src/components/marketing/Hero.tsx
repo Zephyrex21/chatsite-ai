@@ -10,6 +10,7 @@ import { TextInput } from '@/components/ui/TextInput';
 import { Button } from '@/components/ui/Button';
 import { HeroIllustration } from './HeroIllustration';
 import { fadeUp } from '@/lib/motion';
+import { withUserGeminiKeyHeader } from '@/lib/user-gemini-key';
 
 export function Hero() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export function Hero() {
     try {
       const response = await fetch('/api/chat/session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withUserGeminiKeyHeader({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ url: url.trim() }),
       });
 

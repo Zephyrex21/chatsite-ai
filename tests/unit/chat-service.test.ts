@@ -22,6 +22,12 @@ class FakeAiClient implements AiClient {
       yield chunk;
     }
   }
+
+  // Not exercised by ChatService (only SuggestionService calls this) —
+  // present purely to satisfy the AiClient interface.
+  async suggestQuestions(): Promise<string[]> {
+    return [];
+  }
 }
 
 type FakeSession = ChatSessionWithHistory;

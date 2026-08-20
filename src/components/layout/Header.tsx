@@ -5,6 +5,7 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { LogOut, Menu } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Button } from '@/components/ui/Button';
+import { ApiKeySettings } from '@/components/settings/ApiKeySettings';
 
 export function Header({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const { data: session, status } = useSession();
@@ -54,6 +55,7 @@ export function Header({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
           // status === 'loading' — reserve the space so nothing jumps
           <div className="h-11 w-20" aria-hidden="true" />
         )}
+        <ApiKeySettings />
         <ThemeToggle />
       </div>
     </header>

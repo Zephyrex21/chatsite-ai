@@ -38,6 +38,7 @@ export async function GET(
       sessionId: chatSession.id,
       site: { url: chatSession.site.url, title: chatSession.site.title },
       messages: chatSession.messages.map((m) => ({ role: m.role, content: m.content })),
+      suggestedQuestions: chatSession.site.suggestedQuestions,
     });
   } catch (err) {
     if (err instanceof ChatError) {

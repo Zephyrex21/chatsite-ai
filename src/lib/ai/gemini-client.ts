@@ -1,5 +1,11 @@
 import { GoogleGenAI } from '@google/genai';
-import { AiError, type AiClient, type StreamAnswerParams } from './types';
+import {
+  AiError,
+  type AiClient,
+  type StreamAnswerParams,
+  type SuggestQuestionsParams,
+} from './types';
+import { buildSuggestedQuestionsPrompt } from './prompt';
 
 /**
  * Model choice, explained: the Gemini 3.x family has iterated fast (several
@@ -29,6 +35,28 @@ export class GeminiClient implements AiClient {
     // a key that's present but *invalid* still surfaces as an AiError
     // from the SDK call itself, same as before.
     this.ai = new GoogleGenAI({ apiKey });
+  }
+
+  /**
+   * Never throws — a suggestion failure (bad JSON, model error, empty
+   * key) should never surface as a user-facing error or block a chat
+   * session from being created. Returns [] on any failure; the caller
+   * (SuggestionService) treats an empty array as "no chips to show",
+   * nothing more dramatic than that.
+   */
+  async suggestQuestions(params: SuggestQuestionsParams): Promise<string[]> {
+    if (this.apiKey.length === 0) return [];
+
+    try {
+      const response = await this.ai.models.generateContent({
+        model: PRIMARY_MODEL,
+        contents: [{ role: 'user', parts: [{ text: buildSuggestedQuestionsPrompt(params) }] }],
+      });
+
+      return parseSuggestedQuestions(response.text);
+    } catch {
+      return [];
+    }
   }
 
   async *streamAnswer(params: StreamAnswerParams): AsyncGenerator<string> {
@@ -85,4 +113,38 @@ function buildContents(params: StreamAnswerParams): GeminiContent[] {
   }));
 
   return [...history, { role: 'user', parts: [{ text: params.question }] }];
+}
+
+const MAX_SUGGESTED_QUESTIONS = 4;
+const MAX_SUGGESTED_QUESTION_LENGTH = 200; // guards against a malformed/huge response, not a real question
+
+/**
+ * Gemini is instructed to return only a bare JSON array, but models don't
+ * always follow formatting instructions exactly — this defensively
+ * strips a markdown code fence if one shows up anyway, then validates the
+ * parsed value really is an array of reasonably-sized strings before
+ * trusting it, rather than assuming the prompt was obeyed.
+ */
+export function parseSuggestedQuestions(text: string | undefined): string[] {
+  if (!text) return [];
+
+  const stripped = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stripped);
+  } catch {
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed
+    .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    .map((item) => item.trim().slice(0, MAX_SUGGESTED_QUESTION_LENGTH))
+    .slice(0, MAX_SUGGESTED_QUESTIONS);
 }

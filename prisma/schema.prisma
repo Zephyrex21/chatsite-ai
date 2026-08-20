@@ -72,15 +72,22 @@ model VerificationToken {
 }
 
 model ScrapedSite {
-  id         String        @id @default(cuid())
-  url        String        @unique
-  title      String?
-  markdown   String
-  wordCount  Int           @default(0)
-  scrapedAt  DateTime      @default(now())
-  expiresAt  DateTime?
+  id                 String        @id @default(cuid())
+  url                String        @unique
+  title              String?
+  markdown           String
+  wordCount          Int           @default(0)
+  // Generated once per URL (not per session) and cached alongside the
+  // scraped content — every session for the same URL reuses these rather
+  // than paying for a fresh Gemini call each time someone starts a chat
+  // on an already-known page. Empty until the first session's suggestion
+  // call succeeds; @default([]) rather than nullable keeps every read site
+  // "string[]" (a widely-referenced type), not "string[] | null".
+  suggestedQuestions String[]      @default([])
+  scrapedAt          DateTime      @default(now())
+  expiresAt          DateTime?
 
-  sessions   ChatSession[]
+  sessions ChatSession[]
 
   @@index([url])
   @@map("scraped_sites")

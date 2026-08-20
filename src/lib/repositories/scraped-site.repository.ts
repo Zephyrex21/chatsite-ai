@@ -19,6 +19,13 @@ export interface ScrapedSiteRepository {
   findFreshByUrl(url: string): Promise<ScrapedSite | null>;
   upsert(input: UpsertScrapedSiteInput): Promise<ScrapedSite>;
   deleteExpired(): Promise<number>;
+  /**
+   * Separate from upsert() deliberately: suggestions are generated in a
+   * follow-up AI call *after* the scrape completes (see
+   * SuggestionService), not derivable at scrape time, so there's no
+   * natural moment to bundle them into the initial upsert() write.
+   */
+  setSuggestedQuestions(id: string, questions: string[]): Promise<void>;
 }
 
 export class PrismaScrapedSiteRepository implements ScrapedSiteRepository {
@@ -37,6 +44,10 @@ export class PrismaScrapedSiteRepository implements ScrapedSiteRepository {
       create: { ...input, expiresAt },
       update: { ...input, expiresAt, scrapedAt: new Date() },
     });
+  }
+
+  async setSuggestedQuestions(id: string, questions: string[]): Promise<void> {
+    await prisma.scrapedSite.update({ where: { id }, data: { suggestedQuestions: questions } });
   }
 
   /**

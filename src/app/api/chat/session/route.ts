@@ -5,22 +5,26 @@ import { FirecrawlProvider } from '@/lib/services/scraping/firecrawl-provider';
 import { ScraperError } from '@/lib/services/scraping/types';
 import { PrismaScrapedSiteRepository } from '@/lib/repositories/scraped-site.repository';
 import { ChatService } from '@/lib/services/chat/chat.service';
+import { SuggestionService } from '@/lib/services/suggestions/suggestions.service';
 import { GeminiClient } from '@/lib/ai/gemini-client';
 import { getGeminiApiKey } from '@/lib/ai/gemini-api-key';
+import { resolveRequestAiClient } from '@/lib/ai/resolve-request-ai-client';
 import { PrismaChatSessionRepository } from '@/lib/repositories/chat-session.repository';
 import { expensiveRateLimit } from '@/lib/rate-limit/client';
 import { resolveRateLimitIdentifier } from '@/lib/rate-limit/identifier';
 import { logger } from '@/lib/logger';
 
+const scrapedSiteRepository = new PrismaScrapedSiteRepository();
 const scrapingService = new ScrapingService(
   new FirecrawlProvider(process.env.FIRECRAWL_API_KEY ?? ''),
-  new PrismaScrapedSiteRepository(),
+  scrapedSiteRepository,
 );
 
 const chatService = new ChatService(
   new GeminiClient(getGeminiApiKey()),
   new PrismaChatSessionRepository(),
 );
+const defaultAiClient = new GeminiClient(getGeminiApiKey());
 
 /**
  * Starting a conversation is a compound operation: make sure the site is
@@ -62,11 +66,23 @@ export async function POST(request: Request) {
     const site = await scrapingService.scrapeUrl(url);
     const chatSession = await chatService.createSession(site.id, userId);
 
+    // Bring-your-own-key applies here too, not just to /api/chat — the
+    // suggestion call is a real Gemini call and should honor the same
+    // preference. Failure here is already handled inside
+    // SuggestionService (never throws), so no extra try/catch is needed
+    // at this call site.
+    const suggestionService = new SuggestionService(
+      resolveRequestAiClient(request, defaultAiClient),
+      scrapedSiteRepository,
+    );
+    const suggestedQuestions = await suggestionService.getOrGenerate(site);
+
     logger.info('chat_session.created', { sessionId: chatSession.id, url, hasUser: !!userId });
 
     return NextResponse.json({
       sessionId: chatSession.id,
       site: { url: site.url, title: site.title },
+      suggestedQuestions,
     });
   } catch (err) {
     if (err instanceof ScraperError) {

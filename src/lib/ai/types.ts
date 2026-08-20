@@ -24,6 +24,12 @@ export interface StreamAnswerParams {
   question: string;
 }
 
+export interface SuggestQuestionsParams {
+  url: string;
+  title: string | null;
+  markdown: string;
+}
+
 /**
  * Anything that can turn (system instruction + history + question) into a
  * streamed answer. Gemini is the only implementation today; the interface
@@ -31,4 +37,14 @@ export interface StreamAnswerParams {
  */
 export interface AiClient {
   streamAnswer(params: StreamAnswerParams): AsyncGenerator<string>;
+  /**
+   * Generates a handful of natural starter questions for a scraped page.
+   * Deliberately a *separate* method from streamAnswer rather than piggy-
+   * backing on it — this is a single non-streaming call with its own
+   * (much smaller) prompt and its own failure mode (returns [] rather than
+   * throwing; see GeminiClient's implementation for why suggestions are
+   * treated as a best-effort nicety, never something that can block chat
+   * creation).
+   */
+  suggestQuestions(params: SuggestQuestionsParams): Promise<string[]>;
 }

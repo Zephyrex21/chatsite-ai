@@ -9,6 +9,7 @@ export interface ScrapeResult {
   markdown: string;
   wordCount: number;
   fromCache: boolean;
+  suggestedQuestions: string[];
 }
 
 /**
@@ -43,6 +44,7 @@ export class ScrapingService {
         markdown: cached.markdown,
         wordCount: cached.wordCount,
         fromCache: true,
+        suggestedQuestions: cached.suggestedQuestions,
       };
     }
 
@@ -62,6 +64,7 @@ export class ScrapingService {
       markdown: saved.markdown,
       wordCount: saved.wordCount,
       fromCache: false,
+      suggestedQuestions: saved.suggestedQuestions,
     };
   }
 }

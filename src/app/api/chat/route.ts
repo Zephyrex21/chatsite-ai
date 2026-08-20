@@ -3,15 +3,14 @@ import { ChatService } from '@/lib/services/chat/chat.service';
 import { ChatError, type ChatErrorCode } from '@/lib/services/chat/types';
 import { GeminiClient } from '@/lib/ai/gemini-client';
 import { getGeminiApiKey } from '@/lib/ai/gemini-api-key';
+import { resolveRequestAiClient } from '@/lib/ai/resolve-request-ai-client';
 import { PrismaChatSessionRepository } from '@/lib/repositories/chat-session.repository';
 import { expensiveRateLimit } from '@/lib/rate-limit/client';
 import { resolveRateLimitIdentifier } from '@/lib/rate-limit/identifier';
 import { logger } from '@/lib/logger';
 
-const chatService = new ChatService(
-  new GeminiClient(getGeminiApiKey()),
-  new PrismaChatSessionRepository(),
-);
+const sessionRepository = new PrismaChatSessionRepository();
+const defaultAiClient = new GeminiClient(getGeminiApiKey());
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -41,6 +40,15 @@ export async function POST(request: Request) {
   }
 
   logger.info('chat.requested', { sessionId, questionLength: question.length });
+
+  // Bring-your-own-key: a per-request ChatService wrapping a fresh
+  // GeminiClient when the caller supplied their own key via header,
+  // otherwise the shared server-key client. Rate limiting above still
+  // applies regardless — it protects this app's own infrastructure
+  // (DB writes, function invocations), which matters independent of
+  // whose Gemini key answers the question.
+  const aiClient = resolveRequestAiClient(request, defaultAiClient);
+  const chatService = new ChatService(aiClient, sessionRepository);
 
   const generator = chatService.ask(sessionId, question, userId);
 

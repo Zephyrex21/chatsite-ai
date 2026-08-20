@@ -7,6 +7,7 @@ import { LogOut } from 'lucide-react';
 import { cx } from '@/lib/cx';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Button } from '@/components/ui/Button';
+import { ApiKeySettings } from '@/components/settings/ApiKeySettings';
 
 export function Navbar() {
   const { data: session, status } = useSession();
@@ -74,6 +75,7 @@ export function Navbar() {
         ) : (
           <div className="h-11 w-20" aria-hidden="true" />
         )}
+        <ApiKeySettings />
         <ThemeToggle />
       </div>
     </header>
